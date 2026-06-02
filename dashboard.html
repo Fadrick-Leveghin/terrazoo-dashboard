@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TerraZoo — Dashboard Financeiro</title>
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Calibri:wght@300;400;600&display=swap');
+
+:root {
+  --v1: #1a2e1f;
+  --v2: #2E7D32;
+  --v3: #4CAF50;
+  --v4: #A5D6A7;
+  --v5: #b2dfc4;
+  --v6: #E8F5E9;
+  --txt: #111;
+  --muted: #555;
+  --borda: #C8E6C9;
+  --fundo: #fff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Calibri', 'Segoe UI', sans-serif; background: var(--fundo); color: var(--txt); min-height: 100vh; }
+
+/* HEADER */
+header {
+  background: var(--v1);
+  height: 64px;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+.logo { font-size: 24px; font-weight: 600; color: #fff; }
+.logo span { color: var(--v4); }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.header-tag { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.4); }
+.btn-voltar {
+  font-size: 12px; color: var(--v4); background: none;
+  border: 1px solid rgba(165,214,167,0.3); padding: 5px 12px;
+  border-radius: 6px; cursor: pointer; font-family: inherit;
+  text-decoration: none; transition: all .2s;
+}
+.btn-voltar:hover { background: rgba(165,214,167,0.1); }
+
+/* LOADING */
+#loading {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 60vh; gap: 16px;
+}
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--borda);
+  border-top-color: var(--v2);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt { font-size: 14px; color: var(--muted); }
+
+/* ERROR */
+#error-box {
+  display: none;
+  max-width: 500px; margin: 80px auto; padding: 32px;
+  background: #fff3f3; border: 1px solid #ffcdd2;
+  border-radius: 12px; text-align: center;
+}
+.error-title { font-size: 18px; font-weight: 600; color: #c62828; margin-bottom: 8px; }
+.error-msg { font-size: 13px; color: #666; line-height: 1.6; }
+
+/* MAIN */
+main { max-width: 1100px; margin: 0 auto; padding: 36px 24px 80px; }
+
+/* PAGE HEADER */
+.page-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; margin-bottom: 32px;
+  flex-wrap: wrap; gap: 16px;
+}
+.page-title { font-size: 28px; font-weight: 600; color: var(--v1); }
+.page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+/* FILTROS */
+.filtros {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+.filtro-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+select {
+  background: var(--v6); border: 1px solid var(--borda);
+  color: var(--txt); font-size: 13px; padding: 7px 12px;
+  border-radius: 8px; font-family: inherit; cursor: pointer;
+  transition: border-color .2s;
+}
+select:focus { outline: none; border-color: var(--v3); }
+
+/* TABS */
+.tabs {
+  display: flex; gap: 4px; margin-bottom: 28px;
+  border-bottom: 2px solid var(--borda);
+}
+.tab {
+  padding: 10px 20px; font-size: 13px; font-weight: 600;
+  color: var(--muted); cursor: pointer; border: none;
+  background: none; font-family: inherit;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: all .2s; letter-spacing: .3px;
+}
+.tab:hover { color: var(--v2); }
+.tab.active { color: var(--v1); border-bottom-color: var(--v2); }
+
+/* KPI CARDS */
+.kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 28px; }
+.kpi {
+  background: var(--v5); border-radius: 10px;
+  padding: 18px 16px; position: relative; overflow: hidden;
+}
+.kpi::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px; background: var(--v2);
+}
+.kpi-label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--v2); margin-bottom: 8px; }
+.kpi-value { font-size: 24px; font-weight: 600; color: var(--v1); letter-spacing: -0.5px; line-height: 1; }
+.kpi-sub { font-size: 12px; margin-top: 6px; }
+.kpi-up { color: #2E7D32; font-weight: 600; }
+.kpi-dn { color: #c62828; font-weight: 600; }
+.kpi-nt { color: var(--muted); }
+
+/* CHARTS GRID */
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.chart-card {
+  background: #fff; border: 1px solid var(--borda);
+  border-radius: 10px; padding: 20px;
+}
+.chart-card.full { grid-column: 1 / -1; }
+.chart-title {
+  font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--v2); margin-bottom: 16px;
+}
+canvas { max-height: 220px; }
+
+/* TABLE */
+.tbl-card {
+  background: #fff; border: 1px solid var(--borda);
+  border-radius: 10px; padding: 20px; margin-bottom: 18px; overflow-x: auto;
+}
+.tbl-title { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--v2); margin-bottom: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: var(--v6); padding: 9px 12px; text-align: right;
+  font-size: 10px; font-weight: 600; color: var(--v1);
+  letter-spacing: .8px; text-transform: uppercase;
+  border-bottom: 1px solid var(--borda);
+}
+thead th:first-child { text-align: left; }
+tbody td { padding: 8px 12px; text-align: right; border-bottom: 1px solid #f5f5f5; color: var(--muted); }
+tbody td:first-child { text-align: left; color: var(--txt); font-weight: 500; }
+tbody tr:last-child td { border-bottom: none; font-weight: 600; color: var(--txt); background: var(--v6); }
+tbody tr:hover td { background: #fafff8; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.pill-up { background: #E8F5E9; color: #1B5E20; }
+.pill-dn { background: #FFEBEE; color: #B71C1C; }
+
+/* PANEL */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* FOOTER */
+footer {
+  background: var(--v1); padding: 18px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.footer-logo { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.4); }
+.footer-logo span { color: var(--v4); }
+.footer-info { font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 1px; }
+.footer-update { font-size: 11px; color: rgba(255,255,255,0.35); }
+
+@media(max-width:700px) {
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .chart-card.full { grid-column: 1; }
+  header { padding: 0 16px; }
+  main { padding: 24px 16px 60px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">terra<span>ZOO</span></div>
+  <div class="header-right">
+    <span class="header-tag">Dashboard Financeiro</span>
+    <a class="btn-voltar" href="index.html">← Voltar</a>
+  </div>
+</header>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-txt">Conectando ao banco de dados...</div>
+</div>
+
+<div id="error-box">
+  <div class="error-title">Erro de conexão</div>
+  <div class="error-msg" id="error-msg">Não foi possível carregar os dados.</div>
+</div>
+
+<main id="main-content" style="display:none">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Dashboard Financeiro</div>
+      <div class="page-sub" id="page-sub">TerraZoo · Análise de Desempenho</div>
+    </div>
+    <div class="filtros">
+      <span class="filtro-label">Loja</span>
+      <select id="filtroLoja" onchange="renderAtivo()">
+        <option value="TODAS">Todas as lojas</option>
+      </select>
+      <span class="filtro-label">Período</span>
+      <select id="filtroPeriodo" onchange="renderAtivo()">
+        <option value="TODOS">Todos os meses</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="abrirTab('fat')">📈 Faturamento</button>
+    <button class="tab" onclick="abrirTab('mar')">📊 Margem</button>
+    <button class="tab" onclick="abrirTab('sga')">💼 SG&A</button>
+    <button class="tab" onclick="abrirTab('ebt')">⚡ EBITDA</button>
+  </div>
+
+  <!-- FATURAMENTO -->
+  <div class="panel active" id="panel-fat">
+    <div class="kpis" id="kpi-fat"></div>
+    <div class="charts-grid">
+      <div class="chart-card full"><div class="chart-title">Receita Bruta × Receita Líquida — Evolução Mensal</div><canvas id="c-fat-evol"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Realizado vs Orçado</div><canvas id="c-fat-rvso"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Mix por Loja — Receita Líquida</div><canvas id="c-fat-mix"></canvas></div>
+    </div>
+    <div class="tbl-card"><div class="tbl-title">Resumo por Período</div><table id="t-fat"></table></div>
+  </div>
+
+  <!-- MARGEM -->
+  <div class="panel" id="panel-mar">
+    <div class="kpis" id="kpi-mar"></div>
+    <div class="charts-grid">
+      <div class="chart-card full"><div class="chart-title">Lucro Bruto Ajustado × Margem % — Evolução Mensal</div><canvas id="c-mar-evol"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Margem % por Loja</div><canvas id="c-mar-loja"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Realizado vs Orçado — Margem</div><canvas id="c-mar-rvso"></canvas></div>
+    </div>
+    <div class="tbl-card"><div class="tbl-title">Resumo de Margem por Período</div><table id="t-mar"></table></div>
+  </div>
+
+  <!-- SGA -->
+  <div class="panel" id="panel-sga">
+    <div class="kpis" id="kpi-sga"></div>
+    <div class="charts-grid">
+      <div class="chart-card full"><div class="chart-title">SG&A — Evolução Mensal (R$ e % RL)</div><canvas id="c-sga-evol"></canvas></div>
+      <div class="chart-card"><div class="chart-title">SG&A por Loja</div><canvas id="c-sga-loja"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Realizado vs Orçado — SG&A</div><canvas id="c-sga-rvso"></canvas></div>
+    </div>
+    <div class="tbl-card"><div class="tbl-title">SG&A por Período</div><table id="t-sga"></table></div>
+  </div>
+
+  <!-- EBITDA -->
+  <div class="panel" id="panel-ebt">
+    <div class="kpis" id="kpi-ebt"></div>
+    <div class="charts-grid">
+      <div class="chart-card full"><div class="chart-title">EBITDA Ajustado × Margem % — Evolução Mensal</div><canvas id="c-ebt-evol"></canvas></div>
+      <div class="chart-card"><div class="chart-title">EBITDA por Loja</div><canvas id="c-ebt-loja"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Realizado vs Orçado — EBITDA</div><canvas id="c-ebt-rvso"></canvas></div>
+    </div>
+    <div class="tbl-card"><div class="tbl-title">EBITDA por Período</div><table id="t-ebt"></table></div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-logo">terra<span>ZOO</span></div>
+  <div class="footer-update" id="footer-update"></div>
+  <div class="footer-info">DASHBOARD FINANCEIRO · v1.0</div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════
+// Configuração carregada do config.js externo
+// ═══════════════════════════════════════════════
+const CONFIG = window.TERRAZOO_CONFIG || {};
+// ═══════════════════════════════════════════════
+
+let DADOS = [];
+let charts = {};
+
+Chart.defaults.font.family = "'Calibri', 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#666';
+
+const VERDE = {
+  escuro:  'rgba(27,94,32,',
+  medio:   'rgba(46,125,50,',
+  claro:   'rgba(76,175,80,',
+  suave:   'rgba(165,214,167,',
+  azul:    'rgba(33,150,243,',
+  amber:   'rgba(255,167,38,',
+  vermelho:'rgba(229,57,53,',
+};
+const GRID = 'rgba(0,0,0,0.04)';
+
+// ── JWT / Google Auth ──────────────────────────
+async function getAccessToken() {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    iss: CONFIG.clientEmail,
+    scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now
+  };
+  const b64 = s => btoa(unescape(encodeURIComponent(JSON.stringify(s)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  const unsigned = `${b64(header)}.${b64(payload)}`;
+  const key = await importPrivateKey(CONFIG.privateKey);
+  const sig = await crypto.subtle.sign({ name:'RSASSA-PKCS1-v1_5' }, key, new TextEncoder().encode(unsigned));
+  const b64sig = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  const jwt = `${unsigned}.${b64sig}`;
+  const resp = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`
+  });
+  const data = await resp.json();
+  if (!data.access_token) throw new Error('Token inválido: ' + JSON.stringify(data));
+  return data.access_token;
+}
+
+async function importPrivateKey(pem) {
+  const clean = pem.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n/g, '');
+  const bin = Uint8Array.from(atob(clean), c => c.charCodeAt(0));
+  return crypto.subtle.importKey('pkcs8', bin, { name:'RSASSA-PKCS1-v1_5', hash:'SHA-256' }, false, ['sign']);
+}
+
+async function fetchSheetData(token) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}/values/${CONFIG.sheetName}`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await resp.json();
+  if (!data.values) throw new Error('Sem dados na planilha');
+  return data.values;
+}
+
+function parseRows(values) {
+  const [header, ...rows] = values;
+  return rows.map(r => ({
+    mes_ano:      r[0] || '',
+    loja:         r[1] || '',
+    cod_conta:    r[2] || '',
+    linha_dre:    r[3] || '',
+    nivel:        r[4] || '',
+    realizado:    parseFloat(String(r[5]||'0').replace(',','.')) || 0,
+    orcado:       parseFloat(String(r[6]||'0').replace(',','.')) || 0,
+    real_orcado:  parseFloat(String(r[7]||'0').replace(',','.')) || 0,
+    av_realizado: parseFloat(String(r[8]||'0').replace(',','.')) || 0,
+    av_orcado:    parseFloat(String(r[9]||'0').replace(',','.')) || 0,
+  }));
+}
+
+// ── Filtros ──────────────────────────────────
+function popularFiltros() {
+  const lojas   = [...new Set(DADOS.map(r=>r.loja))].sort();
+  const periodos = [...new Set(DADOS.map(r=>r.mes_ano))].sort();
+  const sl = document.getElementById('filtroLoja');
+  const sp = document.getElementById('filtroPeriodo');
+  lojas.forEach(l => { const o = document.createElement('option'); o.value=l; o.textContent=l; sl.appendChild(o); });
+  periodos.forEach(p => { const o = document.createElement('option'); o.value=p; o.textContent=p; sp.appendChild(o); });
+  const ultimo = periodos[periodos.length-1];
+  document.getElementById('page-sub').textContent = `TerraZoo · ${lojas.length} lojas · Jan–${fmtMes(ultimo)}`;
+  document.getElementById('footer-update').textContent = `Último período: ${fmtMes(ultimo)}`;
+}
+
+function dadosFiltrados() {
+  const loja = document.getElementById('filtroLoja').value;
+  const per  = document.getElementById('filtroPeriodo').value;
+  return DADOS.filter(r =>
+    (loja === 'TODAS' || r.loja === loja) &&
+    (per  === 'TODOS' || r.mes_ano === per)
+  );
+}
+
+function getLinha(dados, nome) {
+  return dados.filter(r => r.linha_dre.trim() === nome);
+}
+
+function sumBy(rows, campo, groupBy) {
+  const map = {};
+  rows.forEach(r => {
+    const k = r[groupBy];
+    if (!map[k]) map[k] = { realizado:0, orcado:0 };
+    map[k].realizado += r[campo==='realizado'?'realizado':'realizado'];
+    map[k].orcado    += r.orcado;
+  });
+  return map;
+}
+
+function agregaPorPeriodo(rows) {
+  const map = {};
+  rows.forEach(r => {
+    if (!map[r.mes_ano]) map[r.mes_ano] = { realizado:0, orcado:0 };
+    map[r.mes_ano].realizado += r.realizado;
+    map[r.mes_ano].orcado    += r.orcado;
+  });
+  return map;
+}
+
+function agregaPorLoja(rows) {
+  const map = {};
+  rows.forEach(r => {
+    if (!map[r.loja]) map[r.loja] = { realizado:0, orcado:0 };
+    map[r.loja].realizado += r.realizado;
+    map[r.loja].orcado    += r.orcado;
+  });
+  return map;
+}
+
+// ── Formatação ───────────────────────────────
+function fmtM(v) { return 'R$ ' + (v/1e6).toFixed(2).replace('.',',') + 'M'; }
+function fmtK(v) { return 'R$ ' + Math.round(v/1000).toLocaleString('pt-BR') + 'K'; }
+function fmtR(v) { return 'R$ ' + Math.round(v).toLocaleString('pt-BR'); }
+function fmtP(v) { return (v*100).toFixed(1).replace('.',',') + '%'; }
+function fmtMes(s) { const m=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; const p=s.split('-'); return m[parseInt(p[1])-1]+'/'+p[0].slice(2); }
+function varPct(a,b) { return b!==0?((a-b)/Math.abs(b)):0; }
+function pillVar(v) { const p=(v*100).toFixed(1).replace('.',','); return `<span class="pill ${v>=0?'pill-up':'pill-dn'}">${v>=0?'+':''}${p}%</span>`; }
+
+// ── Chart helpers ─────────────────────────────
+function destroyChart(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
+const chartOpts = (y2=false) => ({
+  responsive: true, maintainAspectRatio: true,
+  plugins: { legend: { labels: { boxWidth:10, font:{size:11} } }, tooltip: { backgroundColor:'#1a2e1f', titleColor:'#fff', bodyColor:'#ccc', borderColor:'#2E7D32', borderWidth:.5 } },
+  scales: {
+    x: { grid:{color:GRID}, ticks:{font:{size:11}} },
+    y: { grid:{color:GRID}, ticks:{font:{size:11}, callback: v => 'R$'+Math.round(v/1e6).toLocaleString('pt-BR')+'M' } },
+    ...(y2 ? { y2: { position:'right', grid:{display:false}, ticks:{font:{size:11}, callback:v=>v+'%'} } } : {})
+  }
+});
+
+// ── KPI helper ────────────────────────────────
+function kpiHTML(label, value, sub, cls='kpi-nt') {
+  return `<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div><div class="kpi-sub ${cls}">${sub}</div></div>`;
+}
+
+// ── TABS ──────────────────────────────────────
+function abrirTab(tab) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  renderTab(tab);
+}
+
+function renderAtivo() {
+  const ativo = document.querySelector('.panel.active').id.replace('panel-','');
+  renderTab(ativo);
+}
+
+function renderTab(tab) {
+  if(tab==='fat') renderFaturamento();
+  else if(tab==='mar') renderMargem();
+  else if(tab==='sga') renderSGA();
+  else if(tab==='ebt') renderEBITDA();
+}
+
+// ══════════════════════════════════════════════
+// FATURAMENTO
+// ══════════════════════════════════════════════
+function renderFaturamento() {
+  const d = dadosFiltrados();
+  const rb = getLinha(d, 'Receita Bruta');
+  const rl = getLinha(d, 'Receita Líquida');
+
+  const rbP = agregaPorPeriodo(rb);
+  const rlP = agregaPorPeriodo(rl);
+  const periodos = Object.keys(rlP).sort();
+  const labels = periodos.map(fmtMes);
+
+  const totRB = Object.values(rbP).reduce((s,v)=>s+v.realizado,0);
+  const totRL = Object.values(rlP).reduce((s,v)=>s+v.realizado,0);
+  const totRLO = Object.values(rlP).reduce((s,v)=>s+v.orcado,0);
+  const vRLvsO = varPct(totRL, totRLO);
+
+  const ultP = periodos[periodos.length-1];
+  const prevP = periodos[periodos.length-2];
+  const vMM = prevP ? varPct(rlP[ultP]?.realizado||0, rlP[prevP]?.realizado||0) : 0;
+  const ded = totRB > 0 ? (totRB - totRL) / totRB : 0;
+
+  document.getElementById('kpi-fat').innerHTML =
+    kpiHTML('Receita Bruta', fmtM(totRB), `Ded. ${fmtP(ded)}`) +
+    kpiHTML('Receita Líquida', fmtM(totRL), `${pillVar(vMM)} vs mês ant.`) +
+    kpiHTML('Orçado RL', fmtM(totRLO), `Ating. ${fmtP(Math.abs(1-vRLvsO+1)-1+1)} `, vRLvsO>=0?'kpi-up':'kpi-dn') +
+    kpiHTML('Real vs Orç', fmtP(totRLO>0?totRL/totRLO:0), vRLvsO>=0?'▲ Acima do orçado':'▼ Abaixo do orçado', vRLvsO>=0?'kpi-up':'kpi-dn');
+
+  // Chart evolução
+  destroyChart('fat-evol');
+  charts['fat-evol'] = new Chart(document.getElementById('c-fat-evol'), {
+    type:'bar',
+    data:{ labels,
+      datasets:[
+        { label:'Receita Bruta', data: periodos.map(p=>Math.round(rbP[p]?.realizado||0)), backgroundColor: VERDE.suave+'0.8)', borderColor: VERDE.suave+'1)', borderWidth:1, borderRadius:3 },
+        { label:'Receita Líquida', data: periodos.map(p=>Math.round(rlP[p]?.realizado||0)), backgroundColor: VERDE.medio+'0.8)', borderColor: VERDE.medio+'1)', borderWidth:1, borderRadius:3 },
+      ]
+    }, options: chartOpts()
+  });
+
+  // Chart RvsO
+  destroyChart('fat-rvso');
+  charts['fat-rvso'] = new Chart(document.getElementById('c-fat-rvso'), {
+    type:'bar',
+    data:{ labels,
+      datasets:[
+        { label:'Realizado', data: periodos.map(p=>Math.round(rlP[p]?.realizado||0)), backgroundColor: VERDE.medio+'0.8)', borderRadius:3 },
+        { label:'Orçado',    data: periodos.map(p=>Math.round(rlP[p]?.orcado||0)),    backgroundColor: VERDE.suave+'0.6)', borderRadius:3 },
+      ]
+    }, options: chartOpts()
+  });
+
+  // Chart mix por loja
+  const lojas = Object.entries(agregaPorLoja(rl)).sort((a,b)=>b[1].realizado-a[1].realizado).slice(0,10);
+  destroyChart('fat-mix');
+  charts['fat-mix'] = new Chart(document.getElementById('c-fat-mix'), {
+    type:'bar',
+    data:{ labels: lojas.map(l=>l[0].split(' ')[0]),
+      datasets:[{ label:'Receita Líquida', data: lojas.map(l=>Math.round(l[1].realizado)), backgroundColor: lojas.map((_,i)=>`hsl(${120+i*8},50%,${40+i*3}%)`) , borderRadius:4 }]
+    },
+    options:{ ...chartOpts(), indexAxis:'y', scales:{ x:{ grid:{color:GRID}, ticks:{callback:v=>'R$'+Math.round(v/1e6)+'M'} }, y:{grid:{display:false}} } }
+  });
+
+  // Tabela
+  const tbl = document.getElementById('t-fat');
+  tbl.innerHTML = `<thead><tr><th>Período</th><th>Rec. Bruta</th><th>Rec. Líquida</th><th>Orçado RL</th><th>Var. R$</th><th>Ating.</th></tr></thead>
+  <tbody>${periodos.map(p=>{
+    const rb_=rbP[p]?.realizado||0, rl_=rlP[p]?.realizado||0, ro_=rlP[p]?.orcado||0;
+    const v=varPct(rl_,ro_);
+    return `<tr><td>${fmtMes(p)}</td><td>${fmtK(rb_)}</td><td>${fmtK(rl_)}</td><td>${fmtK(ro_)}</td><td>${pillVar(v)}</td><td>${fmtP(ro_>0?rl_/ro_:0)}</td></tr>`;
+  }).join('')}
+  <tr><td>TOTAL</td><td>${fmtK(totRB)}</td><td>${fmtK(totRL)}</td><td>${fmtK(totRLO)}</td><td>${pillVar(vRLvsO)}</td><td>${fmtP(totRLO>0?totRL/totRLO:0)}</td></tr>
+  </tbody>`;
+}
+
+// ══════════════════════════════════════════════
+// MARGEM
+// ══════════════════════════════════════════════
+function renderMargem() {
+  const d = dadosFiltrados();
+  const mb = getLinha(d, 'Lucro Bruto Ajustado');
+  const rl = getLinha(d, 'Receita Líquida');
+
+  const mbP = agregaPorPeriodo(mb);
+  const rlP = agregaPorPeriodo(rl);
+  const periodos = Object.keys(mbP).sort();
+  const labels = periodos.map(fmtMes);
+
+  const totMB = Object.values(mbP).reduce((s,v)=>s+v.realizado,0);
+  const totRL = Object.values(rlP).reduce((s,v)=>s+v.realizado,0);
+  const totMBO = Object.values(mbP).reduce((s,v)=>s+v.orcado,0);
+  const totRLO = Object.values(rlP).reduce((s,v)=>s+v.orcado,0);
+  const pctMB = totRL>0?totMB/totRL:0;
+  const pctMBO = totRLO>0?totMBO/totRLO:0;
+  const vMBvsO = varPct(totMB, totMBO);
+
+  const ultP = periodos[periodos.length-1];
+  const prevP = periodos[periodos.length-2];
+  const vMM = prevP ? varPct(mbP[ultP]?.realizado||0, mbP[prevP]?.realizado||0) : 0;
+
+  document.getElementById('kpi-mar').innerHTML =
+    kpiHTML('Margem Bruta R$', fmtM(totMB), `${pillVar(vMM)} vs mês ant.`) +
+    kpiHTML('Margem Bruta %', fmtP(pctMB), `Orç: ${fmtP(pctMBO)}`, pctMB>=pctMBO?'kpi-up':'kpi-dn') +
+    kpiHTML('Margem Orçada R$', fmtM(totMBO), `Ating. ${fmtP(totMBO>0?totMB/totMBO:0)}`, vMBvsO>=0?'kpi-up':'kpi-dn') +
+    kpiHTML('Real vs Orç', pillVar(vMBvsO), vMBvsO>=0?'Acima do orçado':'Abaixo do orçado', vMBvsO>=0?'kpi-up':'kpi-dn');
+
+  destroyChart('mar-evol');
+  const pcts = periodos.map(p => { const r=rlP[p]?.realizado||1; return parseFloat(((mbP[p]?.realizado||0)/r*100).toFixed(1)); });
+  charts['mar-evol'] = new Chart(document.getElementById('c-mar-evol'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Margem Bruta Adj.', data: periodos.map(p=>Math.round(mbP[p]?.realizado||0)), backgroundColor: VERDE.medio+'0.8)', borderRadius:3, yAxisID:'y' },
+      { label:'Margem %', data: pcts, type:'line', borderColor: VERDE.amber+'1)', backgroundColor:'transparent', borderWidth:2, pointRadius:4, pointBackgroundColor: VERDE.amber+'1)', tension:.3, yAxisID:'y2' }
+    ]}, options: chartOpts(true)
+  });
+
+  // Por loja
+  const lojas = Object.entries(agregaPorLoja(mb)).sort((a,b)=>b[1].realizado-a[1].realizado).slice(0,10);
+  const lojasRL = agregaPorLoja(rl);
+  destroyChart('mar-loja');
+  charts['mar-loja'] = new Chart(document.getElementById('c-mar-loja'), {
+    type:'bar',
+    data:{ labels: lojas.map(l=>l[0].split(' ')[0]),
+      datasets:[{ label:'Margem %', data: lojas.map(l=>{ const r=lojasRL[l[0]]?.realizado||1; return parseFloat((l[1].realizado/r*100).toFixed(1)); }), backgroundColor: VERDE.claro+'0.7)', borderRadius:4 }]
+    },
+    options:{ ...chartOpts(), indexAxis:'y', scales:{ x:{grid:{color:GRID}, ticks:{callback:v=>v+'%'}}, y:{grid:{display:false}} } }
+  });
+
+  destroyChart('mar-rvso');
+  charts['mar-rvso'] = new Chart(document.getElementById('c-mar-rvso'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Realizado', data: periodos.map(p=>Math.round(mbP[p]?.realizado||0)), backgroundColor: VERDE.medio+'0.8)', borderRadius:3 },
+      { label:'Orçado',    data: periodos.map(p=>Math.round(mbP[p]?.orcado||0)),    backgroundColor: VERDE.suave+'0.6)', borderRadius:3 },
+    ]}, options: chartOpts()
+  });
+
+  const tbl = document.getElementById('t-mar');
+  tbl.innerHTML = `<thead><tr><th>Período</th><th>Margem R$</th><th>Orçado</th><th>Rec. Líquida</th><th>Margem %</th><th>Var.</th></tr></thead>
+  <tbody>${periodos.map(p=>{
+    const mb_=mbP[p]?.realizado||0, mbo_=mbP[p]?.orcado||0, rl_=rlP[p]?.realizado||1;
+    const v=varPct(mb_,mbo_);
+    return `<tr><td>${fmtMes(p)}</td><td>${fmtK(mb_)}</td><td>${fmtK(mbo_)}</td><td>${fmtK(rl_)}</td><td>${fmtP(mb_/rl_)}</td><td>${pillVar(v)}</td></tr>`;
+  }).join('')}
+  <tr><td>TOTAL</td><td>${fmtK(totMB)}</td><td>${fmtK(totMBO)}</td><td>${fmtK(totRL)}</td><td>${fmtP(pctMB)}</td><td>${pillVar(vMBvsO)}</td></tr>
+  </tbody>`;
+}
+
+// ══════════════════════════════════════════════
+// SG&A
+// ══════════════════════════════════════════════
+function renderSGA() {
+  const d = dadosFiltrados();
+  const sg = getLinha(d, 'SG&A');
+  const rl = getLinha(d, 'Receita Líquida');
+
+  const sgP = agregaPorPeriodo(sg);
+  const rlP = agregaPorPeriodo(rl);
+  const periodos = Object.keys(sgP).sort();
+  const labels = periodos.map(fmtMes);
+
+  const totSG  = Object.values(sgP).reduce((s,v)=>s+v.realizado,0);
+  const totSGO = Object.values(sgP).reduce((s,v)=>s+v.orcado,0);
+  const totRL  = Object.values(rlP).reduce((s,v)=>s+v.realizado,0);
+  const pctSG  = totRL>0?Math.abs(totSG)/totRL:0;
+  const vSGvsO = varPct(totSG, totSGO);
+
+  const ultP = periodos[periodos.length-1];
+  const prevP = periodos[periodos.length-2];
+  const vMM = prevP ? varPct(sgP[ultP]?.realizado||0, sgP[prevP]?.realizado||0) : 0;
+
+  document.getElementById('kpi-sga').innerHTML =
+    kpiHTML('SG&A R$', fmtM(Math.abs(totSG)), `${pillVar(-vMM)} vs mês ant.`) +
+    kpiHTML('SG&A % RL', fmtP(pctSG), 'Sobre Receita Líquida') +
+    kpiHTML('SG&A Orçado', fmtM(Math.abs(totSGO)), `Ating. ${fmtP(totSGO!==0?totSG/totSGO:0)}`, vSGvsO<=0?'kpi-up':'kpi-dn') +
+    kpiHTML('Real vs Orç', pillVar(vSGvsO), vSGvsO<=0?'Dentro do orçado':'Acima do orçado', vSGvsO<=0?'kpi-up':'kpi-dn');
+
+  destroyChart('sga-evol');
+  const pctsSG = periodos.map(p => { const r=rlP[p]?.realizado||1; return parseFloat((Math.abs(sgP[p]?.realizado||0)/r*100).toFixed(1)); });
+  charts['sga-evol'] = new Chart(document.getElementById('c-sga-evol'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'SG&A R$', data: periodos.map(p=>Math.abs(Math.round(sgP[p]?.realizado||0))), backgroundColor: VERDE.vermelho+'0.6)', borderRadius:3, yAxisID:'y' },
+      { label:'% RL', data: pctsSG, type:'line', borderColor: VERDE.amber+'1)', backgroundColor:'transparent', borderWidth:2, pointRadius:4, tension:.3, yAxisID:'y2' }
+    ]}, options: chartOpts(true)
+  });
+
+  const lojas = Object.entries(agregaPorLoja(sg)).sort((a,b)=>a[1].realizado-b[1].realizado).slice(0,10);
+  destroyChart('sga-loja');
+  charts['sga-loja'] = new Chart(document.getElementById('c-sga-loja'), {
+    type:'bar',
+    data:{ labels: lojas.map(l=>l[0].split(' ')[0]),
+      datasets:[{ label:'SG&A R$', data: lojas.map(l=>Math.abs(Math.round(l[1].realizado))), backgroundColor: VERDE.vermelho+'0.6)', borderRadius:4 }]
+    },
+    options:{ ...chartOpts(), indexAxis:'y', scales:{ x:{grid:{color:GRID}, ticks:{callback:v=>'R$'+Math.round(v/1e6)+'M'}}, y:{grid:{display:false}} } }
+  });
+
+  destroyChart('sga-rvso');
+  charts['sga-rvso'] = new Chart(document.getElementById('c-sga-rvso'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Realizado', data: periodos.map(p=>Math.abs(Math.round(sgP[p]?.realizado||0))), backgroundColor: VERDE.vermelho+'0.6)', borderRadius:3 },
+      { label:'Orçado',    data: periodos.map(p=>Math.abs(Math.round(sgP[p]?.orcado||0))),    backgroundColor: VERDE.suave+'0.6)', borderRadius:3 },
+    ]}, options: chartOpts()
+  });
+
+  const tbl = document.getElementById('t-sga');
+  tbl.innerHTML = `<thead><tr><th>Período</th><th>SG&A R$</th><th>Orçado</th><th>Rec. Líquida</th><th>% RL</th><th>Var.</th></tr></thead>
+  <tbody>${periodos.map(p=>{
+    const sg_=sgP[p]?.realizado||0, sgo_=sgP[p]?.orcado||0, rl_=rlP[p]?.realizado||1;
+    const v=varPct(sg_,sgo_);
+    return `<tr><td>${fmtMes(p)}</td><td>${fmtK(Math.abs(sg_))}</td><td>${fmtK(Math.abs(sgo_))}</td><td>${fmtK(rl_)}</td><td>${fmtP(Math.abs(sg_)/rl_)}</td><td>${pillVar(-v)}</td></tr>`;
+  }).join('')}
+  <tr><td>TOTAL</td><td>${fmtK(Math.abs(totSG))}</td><td>${fmtK(Math.abs(totSGO))}</td><td>${fmtK(totRL)}</td><td>${fmtP(pctSG)}</td><td>${pillVar(-vSGvsO)}</td></tr>
+  </tbody>`;
+}
+
+// ══════════════════════════════════════════════
+// EBITDA
+// ══════════════════════════════════════════════
+function renderEBITDA() {
+  const d = dadosFiltrados();
+  const eb = getLinha(d, 'EBITDA Ajustado');
+  const rl = getLinha(d, 'Receita Líquida');
+
+  const ebP = agregaPorPeriodo(eb);
+  const rlP = agregaPorPeriodo(rl);
+  const periodos = Object.keys(ebP).sort();
+  const labels = periodos.map(fmtMes);
+
+  const totEB  = Object.values(ebP).reduce((s,v)=>s+v.realizado,0);
+  const totEBO = Object.values(ebP).reduce((s,v)=>s+v.orcado,0);
+  const totRL  = Object.values(rlP).reduce((s,v)=>s+v.realizado,0);
+  const totRLO = Object.values(rlP).reduce((s,v)=>s+v.orcado,0);
+  const pctEB  = totRL>0?totEB/totRL:0;
+  const pctEBO = totRLO>0?totEBO/totRLO:0;
+  const vEBvsO = varPct(totEB, totEBO);
+
+  const ultP = periodos[periodos.length-1];
+  const prevP = periodos[periodos.length-2];
+  const vMM = prevP ? varPct(ebP[ultP]?.realizado||0, ebP[prevP]?.realizado||0) : 0;
+
+  document.getElementById('kpi-ebt').innerHTML =
+    kpiHTML('EBITDA Ajustado', fmtM(totEB), `${pillVar(vMM)} vs mês ant.`, vMM>=0?'kpi-up':'kpi-dn') +
+    kpiHTML('Margem EBITDA %', fmtP(pctEB), `Orç: ${fmtP(pctEBO)}`, pctEB>=pctEBO?'kpi-up':'kpi-dn') +
+    kpiHTML('EBITDA Orçado', fmtM(totEBO), `Ating. ${fmtP(totEBO>0?totEB/totEBO:0)}`, vEBvsO>=0?'kpi-up':'kpi-dn') +
+    kpiHTML('Real vs Orç', pillVar(vEBvsO), vEBvsO>=0?'Acima do orçado':'Abaixo do orçado', vEBvsO>=0?'kpi-up':'kpi-dn');
+
+  destroyChart('ebt-evol');
+  const pctsEB = periodos.map(p => { const r=rlP[p]?.realizado||1; return parseFloat(((ebP[p]?.realizado||0)/r*100).toFixed(1)); });
+  charts['ebt-evol'] = new Chart(document.getElementById('c-ebt-evol'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'EBITDA Adj.', data: periodos.map(p=>Math.round(ebP[p]?.realizado||0)), backgroundColor: VERDE.escuro+'0.8)', borderRadius:3, yAxisID:'y' },
+      { label:'Margem %', data: pctsEB, type:'line', borderColor: VERDE.amber+'1)', backgroundColor:'transparent', borderWidth:2, pointRadius:4, tension:.3, yAxisID:'y2' }
+    ]}, options: chartOpts(true)
+  });
+
+  const lojas = Object.entries(agregaPorLoja(eb)).sort((a,b)=>b[1].realizado-a[1].realizado).slice(0,10);
+  destroyChart('ebt-loja');
+  charts['ebt-loja'] = new Chart(document.getElementById('c-ebt-loja'), {
+    type:'bar',
+    data:{ labels: lojas.map(l=>l[0].split(' ')[0]),
+      datasets:[{ label:'EBITDA R$', data: lojas.map(l=>Math.round(l[1].realizado)), backgroundColor: lojas.map(l=>l[1].realizado>=0?VERDE.escuro+'0.8)':VERDE.vermelho+'0.7)'), borderRadius:4 }]
+    },
+    options:{ ...chartOpts(), indexAxis:'y', scales:{ x:{grid:{color:GRID}, ticks:{callback:v=>'R$'+Math.round(v/1e6)+'M'}}, y:{grid:{display:false}} } }
+  });
+
+  destroyChart('ebt-rvso');
+  charts['ebt-rvso'] = new Chart(document.getElementById('c-ebt-rvso'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Realizado', data: periodos.map(p=>Math.round(ebP[p]?.realizado||0)), backgroundColor: VERDE.escuro+'0.8)', borderRadius:3 },
+      { label:'Orçado',    data: periodos.map(p=>Math.round(ebP[p]?.orcado||0)),    backgroundColor: VERDE.suave+'0.6)', borderRadius:3 },
+    ]}, options: chartOpts()
+  });
+
+  const tbl = document.getElementById('t-ebt');
+  tbl.innerHTML = `<thead><tr><th>Período</th><th>EBITDA R$</th><th>Orçado</th><th>Rec. Líquida</th><th>Margem %</th><th>Var.</th></tr></thead>
+  <tbody>${periodos.map(p=>{
+    const eb_=ebP[p]?.realizado||0, ebo_=ebP[p]?.orcado||0, rl_=rlP[p]?.realizado||1;
+    const v=varPct(eb_,ebo_);
+    return `<tr><td>${fmtMes(p)}</td><td>${fmtK(eb_)}</td><td>${fmtK(ebo_)}</td><td>${fmtK(rl_)}</td><td>${fmtP(eb_/rl_)}</td><td>${pillVar(v)}</td></tr>`;
+  }).join('')}
+  <tr><td>TOTAL</td><td>${fmtK(totEB)}</td><td>${fmtK(totEBO)}</td><td>${fmtK(totRL)}</td><td>${fmtP(pctEB)}</td><td>${pillVar(vEBvsO)}</td></tr>
+  </tbody>`;
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+async function init() {
+  if (!CONFIG.privateKey || CONFIG.privateKey === 'COLE_SUA_PRIVATE_KEY_AQUI') {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error-box').style.display = 'block';
+    document.getElementById('error-msg').textContent = 'Arquivo config.js não encontrado ou chave não configurada. Coloque o config.js na mesma pasta do dashboard.html.';
+    return;
+  }
+  try {
+    const token = await getAccessToken();
+    const values = await fetchSheetData(token);
+    DADOS = parseRows(values);
+    popularFiltros();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+
+    // Abre a aba correta conforme parâmetro da URL
+    const aba = new URLSearchParams(window.location.search).get('aba') || 'fat';
+    const tabMap = { fat: 0, mar: 1, sga: 2, ebt: 3 };
+    const tabIdx = tabMap[aba] !== undefined ? tabMap[aba] : 0;
+    const tabs = document.querySelectorAll('.tab');
+    const panels = document.querySelectorAll('.panel');
+    tabs.forEach(t => t.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+    tabs[tabIdx].classList.add('active');
+    panels[tabIdx].classList.add('active');
+    renderTab(aba);
+  } catch(err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error-box').style.display = 'block';
+    document.getElementById('error-msg').textContent = 'Erro: ' + err.message;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
