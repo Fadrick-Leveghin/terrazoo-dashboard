@@ -541,14 +541,16 @@ function renderFaturamento() {
 
   const totRL25 = Object.values(rl25P).reduce((s,v)=>s+v.realizado,0);
   const totRL26 = Object.values(rl26P).reduce((s,v)=>s+v.realizado,0);
+  const totRB25 = Object.values(rb25P).reduce((s,v)=>s+v.realizado,0);
   const totRB26 = Object.values(rb26P).reduce((s,v)=>s+v.realizado,0);
   const totRLO26 = Object.values(rl26P).reduce((s,v)=>s+v.orcado,0);
   const vAA = varPct(totRL26, totRL25);
+  const vRBaa = varPct(totRB26, totRB25);
   const vRLvsO = varPct(totRL26, totRLO26);
   const ded = totRB26 > 0 ? (totRB26 - totRL26) / totRB26 : 0;
 
   document.getElementById('kpi-fat').innerHTML =
-    kpiHTML('Receita Bruta 2026', fmtM(totRB26), `Ded. ${fmtP(ded)}`) +
+    kpiHTML('Receita Bruta 2026', fmtM(totRB26), `AH% ${vRBaa>=0?'+':''}${fmtP(Math.abs(vRBaa))} a/a`, vRBaa>=0?'kpi-up':'kpi-dn') +
     kpiHTML('Rec. Líquida 2026', fmtM(totRL26), 'Realizado') +
     kpiHTML('Rec. Líquida 2025', fmtM(totRL25), 'Ano anterior') +
     kpiHTML('Var. 2026 vs 2025', fmtP(Math.abs(vAA)), vAA>=0?'▲ Crescimento a/a':'▼ Queda a/a', vAA>=0?'kpi-up':'kpi-dn') +
@@ -578,7 +580,39 @@ function renderFaturamento() {
     }, options: chartOpts()
   });
 
-  // Chart mix por loja 2026 vs 2025 — largura total
+  // Chart AH% 2026 vs 2025 por mês
+  destroyChart('fat-dum');
+  const ahPcts = meses.map(m => {
+    const r25 = get25(rl25P, m);
+    const r26 = get26(rl26P, m);
+    return r25 > 0 ? parseFloat(((r26-r25)/r25*100).toFixed(1)) : 0;
+  });
+  charts['fat-dum'] = new Chart(document.getElementById('c-fat-dum'), {
+    type: 'bar',
+    data: { labels,
+      datasets:[{
+        label: 'AH% RL 2026 vs 2025',
+        data: ahPcts,
+        backgroundColor: ahPcts.map(v => v>=0 ? 'rgba(46,125,50,0.85)' : 'rgba(198,40,40,0.85)'),
+        borderColor: ahPcts.map(v => v>=0 ? 'rgba(46,125,50,1)' : 'rgba(198,40,40,1)'),
+        borderWidth: 1, borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      layout: { padding: { top: 24 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor:'#1a2e1f', titleColor:'#fff', bodyColor:'#ccc',
+          callbacks: { label: ctx => ` ${ctx.raw>=0?'+':''}${ctx.raw}%` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: GRID }, ticks: { font: { size: 11 }, callback: v => v+'%' } }
+      }
+    }
+  });
   const lojas26 = Object.entries(agregaPorLoja(rl26)).sort((a,b)=>b[1].realizado-a[1].realizado);
   const lojas25map = agregaPorLoja(rl25);
   destroyChart('fat-mix');
@@ -642,7 +676,6 @@ function renderFaturamento() {
 
   // Tabela comparativa
   const tbl = document.getElementById('t-fat');
-  const totRB25 = Object.values(rb25P).reduce((s,v)=>s+v.realizado,0);
   tbl.innerHTML = `<thead><tr>
     <th>Mês</th><th>RL 2025</th><th>RL 2026</th><th>Var. R$</th><th>Var. %</th><th>Orç 2026</th><th>Real/Orç</th>
   </tr></thead><tbody>${meses.map(m=>{
