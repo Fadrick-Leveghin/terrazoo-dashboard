@@ -114,17 +114,18 @@ select:focus { outline: none; border-color: var(--v3); }
 .tab.active { color: var(--v1); border-bottom-color: var(--v2); }
 
 /* KPI CARDS */
-.kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 28px; }
+.kpis { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; margin-bottom: 28px; }
 .kpi {
   background: var(--v5); border-radius: 10px;
-  padding: 18px 16px; position: relative; overflow: hidden;
+  padding: 16px 14px; position: relative; overflow: hidden;
 }
 .kpi::after {
   content: ''; position: absolute; bottom: 0; left: 0; right: 0;
   height: 3px; background: var(--v2);
 }
 .kpi-label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--v2); margin-bottom: 8px; }
-.kpi-value { font-size: 24px; font-weight: 600; color: var(--v1); letter-spacing: -0.5px; line-height: 1; }
+.kpi-value { font-size: 22px; font-weight: 600; color: var(--v1); letter-spacing: -0.5px; line-height: 1; }
+.kpi-value .pill { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; background: none; padding: 0; border-radius: 0; }
 .kpi-sub { font-size: 12px; margin-top: 6px; }
 .kpi-up { color: #2E7D32; font-weight: 600; }
 .kpi-dn { color: #c62828; font-weight: 600; }
@@ -240,7 +241,11 @@ footer {
     <div class="charts-grid">
       <div class="chart-card full"><div class="chart-title">Receita Bruta × Receita Líquida — Evolução Mensal</div><canvas id="c-fat-evol"></canvas></div>
       <div class="chart-card"><div class="chart-title">Realizado vs Orçado</div><canvas id="c-fat-rvso"></canvas></div>
-      <div class="chart-card"><div class="chart-title">Mix por Loja — Receita Líquida</div><canvas id="c-fat-mix"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Variação 2026 vs 2025 por Mês</div><canvas id="c-fat-dum"></canvas></div>
+    </div>
+    <div class="chart-card full" style="margin-bottom:18px">
+      <div class="chart-title">Mix por Loja — Receita Líquida 2025 vs 2026</div>
+      <canvas id="c-fat-mix" style="max-height:320px"></canvas>
     </div>
     <div class="chart-card full" style="margin-bottom:18px">
       <div class="chart-title">Variação Realizado vs Orçado por Loja — Receita Líquida (R$)</div>
@@ -254,8 +259,12 @@ footer {
     <div class="kpis" id="kpi-mar"></div>
     <div class="charts-grid">
       <div class="chart-card full"><div class="chart-title">Lucro Bruto Ajustado × Margem % — Evolução Mensal</div><canvas id="c-mar-evol"></canvas></div>
-      <div class="chart-card"><div class="chart-title">Margem % por Loja</div><canvas id="c-mar-loja"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Margem % por Loja — 2025 vs 2026</div><canvas id="c-mar-loja"></canvas></div>
       <div class="chart-card"><div class="chart-title">Realizado vs Orçado — Margem</div><canvas id="c-mar-rvso"></canvas></div>
+    </div>
+    <div class="chart-card full" style="margin-bottom:18px">
+      <div class="chart-title">Variação Realizado vs Orçado por Loja — Margem Bruta (R$)</div>
+      <canvas id="c-mar-var" style="max-height:320px"></canvas>
     </div>
     <div class="tbl-card"><div class="tbl-title">Resumo de Margem por Período</div><table id="t-mar"></table></div>
   </div>
@@ -265,8 +274,12 @@ footer {
     <div class="kpis" id="kpi-sga"></div>
     <div class="charts-grid">
       <div class="chart-card full"><div class="chart-title">SG&A — Evolução Mensal (R$ e % RL)</div><canvas id="c-sga-evol"></canvas></div>
-      <div class="chart-card"><div class="chart-title">SG&A por Loja</div><canvas id="c-sga-loja"></canvas></div>
+      <div class="chart-card"><div class="chart-title">SG&A por Loja — 2025 vs 2026</div><canvas id="c-sga-loja"></canvas></div>
       <div class="chart-card"><div class="chart-title">Realizado vs Orçado — SG&A</div><canvas id="c-sga-rvso"></canvas></div>
+    </div>
+    <div class="chart-card full" style="margin-bottom:18px">
+      <div class="chart-title">Variação Realizado vs Orçado por Loja — SG&A (R$)</div>
+      <canvas id="c-sga-var" style="max-height:320px"></canvas>
     </div>
     <div class="tbl-card"><div class="tbl-title">SG&A por Período</div><table id="t-sga"></table></div>
   </div>
@@ -276,8 +289,12 @@ footer {
     <div class="kpis" id="kpi-ebt"></div>
     <div class="charts-grid">
       <div class="chart-card full"><div class="chart-title">EBITDA Ajustado × Margem % — Evolução Mensal</div><canvas id="c-ebt-evol"></canvas></div>
-      <div class="chart-card"><div class="chart-title">EBITDA por Loja</div><canvas id="c-ebt-loja"></canvas></div>
+      <div class="chart-card"><div class="chart-title">EBITDA por Loja — 2025 vs 2026</div><canvas id="c-ebt-loja"></canvas></div>
       <div class="chart-card"><div class="chart-title">Realizado vs Orçado — EBITDA</div><canvas id="c-ebt-rvso"></canvas></div>
+    </div>
+    <div class="chart-card full" style="margin-bottom:18px">
+      <div class="chart-title">Variação Realizado vs Orçado por Loja — EBITDA (R$)</div>
+      <canvas id="c-ebt-var" style="max-height:320px"></canvas>
     </div>
     <div class="tbl-card"><div class="tbl-title">EBITDA por Período</div><table id="t-ebt"></table></div>
   </div>
@@ -531,9 +548,10 @@ function renderFaturamento() {
   const ded = totRB26 > 0 ? (totRB26 - totRL26) / totRB26 : 0;
 
   document.getElementById('kpi-fat').innerHTML =
-    kpiHTML('Rec. Líquida 2026', fmtM(totRL26), `Ded. ${fmtP(ded)}`) +
+    kpiHTML('Receita Bruta 2026', fmtM(totRB26), `Ded. ${fmtP(ded)}`) +
+    kpiHTML('Rec. Líquida 2026', fmtM(totRL26), 'Realizado') +
     kpiHTML('Rec. Líquida 2025', fmtM(totRL25), 'Ano anterior') +
-    kpiHTML('Var. 2026 vs 2025', pillVar(vAA), vAA>=0?'Crescimento a/a':'Queda a/a', vAA>=0?'kpi-up':'kpi-dn') +
+    kpiHTML('Var. 2026 vs 2025', fmtP(Math.abs(vAA)), vAA>=0?'▲ Crescimento a/a':'▼ Queda a/a', vAA>=0?'kpi-up':'kpi-dn') +
     kpiHTML('Real vs Orç 2026', fmtP(totRLO26>0?totRL26/totRLO26:0), vRLvsO>=0?'▲ Acima':'▼ Abaixo', vRLvsO>=0?'kpi-up':'kpi-dn');
 
   // Chart evolução 2025 vs 2026
@@ -560,7 +578,7 @@ function renderFaturamento() {
     }, options: chartOpts()
   });
 
-  // Chart mix por loja 2026 vs 2025
+  // Chart mix por loja 2026 vs 2025 — largura total
   const lojas26 = Object.entries(agregaPorLoja(rl26)).sort((a,b)=>b[1].realizado-a[1].realizado);
   const lojas25map = agregaPorLoja(rl25);
   destroyChart('fat-mix');
@@ -574,13 +592,13 @@ function renderFaturamento() {
     },
     options:{
       responsive:true, maintainAspectRatio:true,
-      layout:{ padding:{ left:5, top:20 } },
+      layout:{ padding:{ top:20 } },
       plugins:{
         legend:{ labels:{ boxWidth:10, font:{size:11} } },
         tooltip:{ backgroundColor:'#1a2e1f', titleColor:'#fff', bodyColor:'#ccc', callbacks:{ label: ctx => ` ${fmtLabel(ctx.raw)}` } }
       },
       scales:{
-        x:{ grid:{color:GRID}, ticks:{callback:fmtEixo, font:{size:9}, maxRotation:90, minRotation:90, autoSkip:false} },
+        x:{ grid:{display:false}, ticks:{callback:fmtEixo, font:{size:9}, maxRotation:90, minRotation:90, autoSkip:false} },
         y:{ grid:{color:GRID}, ticks:{callback:fmtEixo, font:{size:10}} }
       }
     }
@@ -676,7 +694,8 @@ function renderMargem() {
   document.getElementById('kpi-mar').innerHTML =
     kpiHTML('Margem Bruta 2026', fmtM(totMB26), fmtP(pctMB26)+' da RL') +
     kpiHTML('Margem Bruta 2025', fmtM(totMB25), fmtP(pctMB25)+' da RL') +
-    kpiHTML('Var. 2026 vs 2025', pillVar(vAA), `${(pctMB26*100-pctMB25*100).toFixed(1).replace('.',',')}pp em margem %`, vAA>=0?'kpi-up':'kpi-dn') +
+    kpiHTML('Var. R$ a/a', fmtM(Math.abs(totMB26-totMB25)), totMB26>=totMB25?'▲ Crescimento':'▼ Queda', totMB26>=totMB25?'kpi-up':'kpi-dn') +
+    kpiHTML('Var. % a/a', fmtP(Math.abs(vAA)), vAA>=0?'▲ 2026 vs 2025':'▼ 2026 vs 2025', vAA>=0?'kpi-up':'kpi-dn') +
     kpiHTML('Real vs Orç 2026', pillVar(vMBvsO), vMBvsO>=0?'Acima do orçado':'Abaixo do orçado', vMBvsO>=0?'kpi-up':'kpi-dn');
 
   destroyChart('mar-evol');
@@ -715,6 +734,36 @@ function renderMargem() {
       { label:'Realizado 2026', data: meses.map(m=>Math.round(get(mb26P,m))), backgroundColor: VERDE.escuro+'0.85)', borderRadius:3 },
       { label:'Orçado 2026',    data: meses.map(m=>Math.round(getO(mb26P,m))), backgroundColor: VERDE.suave+'0.6)', borderRadius:3 },
     ]}, options: chartOpts()
+  });
+
+  // Chart variação Real vs Orç por loja — Margem
+  const varLojasMar = lojas26.map(([loja, v]) => ({
+    loja, var_rs: v.realizado - (agregaPorLoja(mb26)[loja]?.orcado||0)
+  })).map(x=>({ loja:x.loja, var_rs: (() => {
+    const rl26loja = lojas26.find(l=>l[0]===x.loja)?.[1]?.realizado || 0;
+    return 0; // placeholder — recalcula abaixo
+  })() }));
+
+  const mb26lojas = Object.entries(agregaPorLoja(mb26))
+    .map(([loja,v])=>({ loja, var_rs: v.realizado - v.orcado }))
+    .sort((a,b)=>b.var_rs-a.var_rs);
+
+  destroyChart('mar-var');
+  charts['mar-var'] = new Chart(document.getElementById('c-mar-var'), {
+    type:'bar',
+    data:{
+      labels: mb26lojas.map(l=>l.loja),
+      datasets:[{ label:'Var. Real vs Orç',
+        data: mb26lojas.map(l=>Math.round(l.var_rs)),
+        backgroundColor: mb26lojas.map(l=>l.var_rs>=0?'rgba(46,125,50,0.85)':'rgba(198,40,40,0.85)'),
+        borderColor: mb26lojas.map(l=>l.var_rs>=0?'rgba(46,125,50,1)':'rgba(198,40,40,1)'),
+        borderWidth:1, borderRadius:3
+      }]
+    },
+    options:{ responsive:true, maintainAspectRatio:true, layout:{padding:{top:24,bottom:8}},
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2e1f', titleColor:'#fff', bodyColor:'#ccc', callbacks:{ label: ctx=>` ${ctx.raw>=0?'+':''}${fmtLabel(ctx.raw)}` } } },
+      scales:{ x:{grid:{display:false}, ticks:{font:{size:10}, maxRotation:90, minRotation:90, autoSkip:false}}, y:{grid:{color:GRID}, ticks:{callback:fmtEixo, font:{size:11}}} }
+    }
   });
 
   const tbl = document.getElementById('t-mar');
@@ -766,7 +815,8 @@ function renderSGA() {
   document.getElementById('kpi-sga').innerHTML =
     kpiHTML('SG&A 2026', fmtM(Math.abs(totSG26)), fmtP(pctSG26)+' da RL') +
     kpiHTML('SG&A 2025', fmtM(Math.abs(totSG25)), fmtP(pctSG25)+' da RL') +
-    kpiHTML('Var. 2026 vs 2025', pillVar(vAA), vAA<=0?'Redução de custos':'Aumento de custos', vAA<=0?'kpi-up':'kpi-dn') +
+    kpiHTML('Var. R$ a/a', fmtM(Math.abs(totSG26-totSG25)), totSG26<=totSG25?'▼ Redução':'▲ Aumento', totSG26<=totSG25?'kpi-up':'kpi-dn') +
+    kpiHTML('Var. % a/a', fmtP(Math.abs(vAA)), vAA<=0?'▼ Redução a/a':'▲ Aumento a/a', vAA<=0?'kpi-up':'kpi-dn') +
     kpiHTML('Real vs Orç 2026', pillVar(vSGvsO), vSGvsO<=0?'Dentro do orçado':'Acima do orçado', vSGvsO<=0?'kpi-up':'kpi-dn');
 
   destroyChart('sga-evol');
@@ -803,6 +853,28 @@ function renderSGA() {
       { label:'Realizado 2026', data: meses.map(m=>Math.abs(Math.round(get(sg26P,m)))), backgroundColor: VERDE.vermelho+'0.6)', borderRadius:3 },
       { label:'Orçado 2026',    data: meses.map(m=>Math.abs(Math.round(getO(sg26P,m)))), backgroundColor: VERDE.suave+'0.6)', borderRadius:3 },
     ]}, options: chartOpts()
+  });
+
+  const sg26lojas = Object.entries(agregaPorLoja(sg26))
+    .map(([loja,v])=>({ loja, var_rs: v.realizado - v.orcado }))
+    .sort((a,b)=>a.var_rs-b.var_rs);
+
+  destroyChart('sga-var');
+  charts['sga-var'] = new Chart(document.getElementById('c-sga-var'), {
+    type:'bar',
+    data:{
+      labels: sg26lojas.map(l=>l.loja),
+      datasets:[{ label:'Var. Real vs Orç',
+        data: sg26lojas.map(l=>Math.round(l.var_rs)),
+        backgroundColor: sg26lojas.map(l=>l.var_rs<=0?'rgba(46,125,50,0.85)':'rgba(198,40,40,0.85)'),
+        borderColor: sg26lojas.map(l=>l.var_rs<=0?'rgba(46,125,50,1)':'rgba(198,40,40,1)'),
+        borderWidth:1, borderRadius:3
+      }]
+    },
+    options:{ responsive:true, maintainAspectRatio:true, layout:{padding:{top:24,bottom:8}},
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2e1f', titleColor:'#fff', bodyColor:'#ccc', callbacks:{ label: ctx=>` ${ctx.raw>=0?'+':''}${fmtLabel(ctx.raw)}` } } },
+      scales:{ x:{grid:{display:false}, ticks:{font:{size:10}, maxRotation:90, minRotation:90, autoSkip:false}}, y:{grid:{color:GRID}, ticks:{callback:fmtEixo, font:{size:11}}} }
+    }
   });
 
   const tbl = document.getElementById('t-sga');
@@ -855,7 +927,8 @@ function renderEBITDA() {
   document.getElementById('kpi-ebt').innerHTML =
     kpiHTML('EBITDA 2026', fmtM(totEB26), fmtP(pctEB26)+' margem', totEB26>=0?'kpi-up':'kpi-dn') +
     kpiHTML('EBITDA 2025', fmtM(totEB25), fmtP(pctEB25)+' margem') +
-    kpiHTML('Var. 2026 vs 2025', pillVar(vAA), `${(pctEB26*100-pctEB25*100).toFixed(1).replace('.',',')}pp em margem`, vAA>=0?'kpi-up':'kpi-dn') +
+    kpiHTML('Var. R$ a/a', fmtM(Math.abs(totEB26-totEB25)), totEB26>=totEB25?'▲ Crescimento':'▼ Queda', totEB26>=totEB25?'kpi-up':'kpi-dn') +
+    kpiHTML('Var. % a/a', fmtP(Math.abs(vAA)), vAA>=0?'▲ 2026 vs 2025':'▼ 2026 vs 2025', vAA>=0?'kpi-up':'kpi-dn') +
     kpiHTML('Real vs Orç 2026', pillVar(vEBvsO), vEBvsO>=0?'Acima do orçado':'Abaixo do orçado', vEBvsO>=0?'kpi-up':'kpi-dn');
 
   destroyChart('ebt-evol');
@@ -892,6 +965,28 @@ function renderEBITDA() {
       { label:'Realizado 2026', data: meses.map(m=>Math.round(get(eb26P,m))), backgroundColor: VERDE.escuro+'0.85)', borderRadius:3 },
       { label:'Orçado 2026',    data: meses.map(m=>Math.round(getO(eb26P,m))), backgroundColor: VERDE.suave+'0.6)', borderRadius:3 },
     ]}, options: chartOpts()
+  });
+
+  const eb26lojas = Object.entries(agregaPorLoja(eb26))
+    .map(([loja,v])=>({ loja, var_rs: v.realizado - v.orcado }))
+    .sort((a,b)=>b.var_rs-a.var_rs);
+
+  destroyChart('ebt-var');
+  charts['ebt-var'] = new Chart(document.getElementById('c-ebt-var'), {
+    type:'bar',
+    data:{
+      labels: eb26lojas.map(l=>l.loja),
+      datasets:[{ label:'Var. Real vs Orç',
+        data: eb26lojas.map(l=>Math.round(l.var_rs)),
+        backgroundColor: eb26lojas.map(l=>l.var_rs>=0?'rgba(46,125,50,0.85)':'rgba(198,40,40,0.85)'),
+        borderColor: eb26lojas.map(l=>l.var_rs>=0?'rgba(46,125,50,1)':'rgba(198,40,40,1)'),
+        borderWidth:1, borderRadius:3
+      }]
+    },
+    options:{ responsive:true, maintainAspectRatio:true, layout:{padding:{top:24,bottom:8}},
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2e1f', titleColor:'#fff', bodyColor:'#ccc', callbacks:{ label: ctx=>` ${ctx.raw>=0?'+':''}${fmtLabel(ctx.raw)}` } } },
+      scales:{ x:{grid:{display:false}, ticks:{font:{size:10}, maxRotation:90, minRotation:90, autoSkip:false}}, y:{grid:{color:GRID}, ticks:{callback:fmtEixo, font:{size:11}}} }
+    }
   });
 
   const tbl = document.getElementById('t-ebt');
