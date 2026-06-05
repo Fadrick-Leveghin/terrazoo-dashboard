@@ -188,7 +188,13 @@ async function init(){
       conta:String(r.conta||'').trim(),
       denominacao:String(r.denominacao||''),
       saldo:Number(r.saldo||0),
-    }));
+    })).filter(r=>r.mes_ano.match(/^\d{4}-\d{2}$/));
+
+    // Debug — remover depois
+    console.log('BAL total:', BAL.length);
+    console.log('BAL meses:', [...new Set(BAL.map(r=>r.mes_ano))]);
+    console.log('BAL amostra raw:', (data.balanco||[]).slice(0,2).map(r=>r.mes_ano));
+    console.log('DRE total:', DRE.length);
     DRE=(data.rows||[]).map(r=>({
       mes_ano:String(r.mes_ano||'').replace(/[^0-9\-]/g,'').slice(0,7),
       linha_dre:String(r.linha_dre||'').trim(),
