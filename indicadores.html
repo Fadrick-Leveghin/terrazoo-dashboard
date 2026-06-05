@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TerraZoo — Indicadores Financeiros</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Calibri:wght@300;400;600&display=swap');
+:root{
+  --v1:#1a2e1f;--v2:#2E7D32;--v3:#4CAF50;--v4:#A5D6A7;--v5:#b2dfc4;--v6:#E8F5E9;
+  --txt:#111;--muted:#555;--borda:#C8E6C9;--fundo:#fff;
+  --red:#C62828;--amber:#E65100;--green:#2E7D32;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Calibri','Segoe UI',sans-serif;background:var(--fundo);color:var(--txt);min-height:100vh}
+header{background:var(--v1);height:64px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.logo{font-size:22px;font-weight:600;color:#fff}.logo span{color:var(--v4)}
+.header-right{display:flex;align-items:center;gap:12px}
+.btn-back{font-size:12px;color:var(--v4);background:none;border:1px solid rgba(165,214,167,.3);padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;text-decoration:none}
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px}
+.spinner{width:36px;height:36px;border:3px solid var(--borda);border-top-color:var(--v2);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#error-box{display:none;max-width:500px;margin:80px auto;padding:32px;background:#fff3f3;border:1px solid #ffcdd2;border-radius:12px;text-align:center}
+.error-title{font-size:18px;font-weight:600;color:#c62828;margin-bottom:8px}
+.error-msg{font-size:13px;color:#666;line-height:1.6}
+main{max-width:1200px;margin:0 auto;padding:28px 20px 80px}
+.filtros-bar{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.filtro-label{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+select{background:var(--v6);border:1px solid var(--borda);color:var(--txt);font-size:12px;padding:6px 10px;border-radius:7px;font-family:inherit;cursor:pointer}
+select:focus{outline:none;border-color:var(--v3)}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:8px}
+.page-title{font-size:22px;font-weight:600;color:var(--v1)}
+.page-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.periodo-badge{background:var(--v5);color:var(--v1);font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px}
+.grupo-title{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--v2);margin:28px 0 14px;display:flex;align-items:center;gap:10px}
+.grupo-title::after{content:'';flex:1;height:1px;background:var(--borda)}
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:8px}
+.ind-card{background:var(--v5);border-radius:10px;padding:16px 14px;position:relative;overflow:hidden}
+.ind-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--v2)}
+.ind-card.status-ok::after{background:var(--green)}
+.ind-card.status-warn::after{background:var(--amber)}
+.ind-card.status-bad::after{background:var(--red)}
+.ind-label{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--v2);margin-bottom:6px}
+.ind-value{font-size:20px;font-weight:600;color:var(--v1);letter-spacing:-0.5px;line-height:1}
+.ind-sub{font-size:11px;margin-top:5px;color:var(--muted)}
+.ind-sub.up{color:var(--green);font-weight:600}
+.ind-sub.dn{color:var(--red);font-weight:600}
+.ind-sub.nt{color:var(--muted)}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px}
+.chart-card{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:18px}
+.chart-card.full{grid-column:1/-1}
+.chart-title-lbl{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--v2);margin-bottom:14px}
+canvas{max-height:200px}
+.tbl-wrap{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:18px;margin-bottom:8px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--v6);padding:8px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--v1);letter-spacing:.8px;text-transform:uppercase;border-bottom:1px solid var(--borda)}
+thead th:first-child{text-align:left}
+tbody td{padding:7px 10px;text-align:right;border-bottom:1px solid #f5f5f5;color:var(--muted)}
+tbody td:first-child{text-align:left;color:var(--txt);font-weight:500}
+tbody tr:last-child td{font-weight:600;color:var(--txt);background:var(--v6)}
+.eva-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:40px}
+.footer-logo{font-size:13px;font-weight:600;color:rgba(255,255,255,.4)}.footer-logo span{color:var(--v4)}
+.footer-info{font-size:11px;color:rgba(255,255,255,.25);letter-spacing:1px}
+@media(max-width:700px){.ind-grid{grid-template-columns:1fr 1fr}.chart-grid{grid-template-columns:1fr}.eva-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">terra<span>ZOO</span></div>
+  <div class="header-right">
+    <span style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4)">Indicadores</span>
+    <a class="btn-back" href="index.html">← Voltar</a>
+  </div>
+</header>
+<div id="loading"><div class="spinner"></div><div style="font-size:14px;color:var(--muted)">Calculando indicadores...</div></div>
+<div id="error-box"><div class="error-title">Erro</div><div class="error-msg" id="error-msg"></div></div>
+<main id="main-content" style="display:none">
+  <div class="filtros-bar">
+    <span class="filtro-label">Mês</span>
+    <select id="fMes" onchange="renderIndicadores()"></select>
+  </div>
+  <div class="page-header">
+    <div><div class="page-title">Indicadores Financeiros</div><div class="page-sub" id="page-sub">TerraZoo</div></div>
+    <div class="periodo-badge" id="periodo-badge"></div>
+  </div>
+  <div class="grupo-title">💧 Liquidez</div>
+  <div class="ind-grid" id="grid-liquidez"></div>
+  <div class="chart-grid"><div class="chart-card full"><div class="chart-title-lbl">Evolução dos Índices de Liquidez</div><canvas id="c-liquidez"></canvas></div></div>
+  <div class="grupo-title">⚙️ Capital de Giro — Modelo Fleuriet</div>
+  <div class="ind-grid" id="grid-fleuriet" style="grid-template-columns:repeat(4,1fr)"></div>
+  <div class="chart-grid"><div class="chart-card full"><div class="chart-title-lbl">CDG · NCG · Saldo de Tesouraria</div><canvas id="c-fleuriet"></canvas></div></div>
+  <div class="grupo-title">📅 Prazos Médios (dias)</div>
+  <div class="ind-grid" id="grid-prazos"></div>
+  <div class="tbl-wrap"><div class="chart-title-lbl" style="margin-bottom:12px">Detalhe dos Prazos por Período</div><table id="t-prazos"></table></div>
+  <div class="chart-grid" style="margin-top:14px"><div class="chart-card full"><div class="chart-title-lbl">PMR · PME · PMP · Ciclo Financeiro</div><canvas id="c-prazos"></canvas></div></div>
+  <div class="grupo-title">🏛️ Estrutura de Capital e WACC</div>
+  <div class="eva-grid" id="grid-wacc"></div>
+  <div class="chart-grid" style="margin-top:14px">
+    <div class="chart-card"><div class="chart-title-lbl">Composição das Fontes</div><canvas id="c-fontes"></canvas></div>
+    <div class="chart-card"><div class="chart-title-lbl">WACC — Evolução</div><canvas id="c-wacc"></canvas></div>
+  </div>
+  <div class="grupo-title">💎 Criação de Valor — EVA / NOPAT / ROCE</div>
+  <div class="eva-grid" id="grid-eva"></div>
+  <div class="chart-grid"><div class="chart-card full"><div class="chart-title-lbl">EVA e NOPAT</div><canvas id="c-eva"></canvas></div></div>
+  <div class="grupo-title">📈 Rentabilidade</div>
+  <div class="ind-grid" id="grid-rent"></div>
+  <div class="chart-grid"><div class="chart-card full"><div class="chart-title-lbl">ROA · ROE · Margem EBITDA</div><canvas id="c-rent"></canvas></div></div>
+</main>
+<footer>
+  <div class="footer-logo">terra<span>ZOO</span></div>
+  <div class="footer-info">INDICADORES FINANCEIROS · TERRAZOO</div>
+</footer>
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbwbqZDvHDwuwWJkyyjgK3YJAi7JEBqLHAlbuJHh32V50FyFSTneJEmmRWrpW49Rw5by/exec';
+let BAL=[],DRE=[],charts={};
+const NOM=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const GRID='rgba(0,0,0,0.04)';
+Chart.defaults.font.family="'Calibri','Segoe UI',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.color='#666';
+
+function fmtMes(s){const p=s.split('-');return NOM[parseInt(p[1])-1]+'/'+p[0].slice(2);}
+function fmtN(v,d=2){return v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function fmtM(v){const a=Math.abs(v),s=(a/1e6).toFixed(2).replace('.',',')+'M';return v<0?`(R$ ${s})`:`R$ ${s}`;}
+function fmtD(v){return fmtN(v,1)+' dias';}
+function fmtP(v){return fmtN(v*100,2)+'%';}
+function fmtI(v){return fmtN(v,4)+'x';}
+function varSub(cur,prev,inv=false){
+  if(prev===undefined||prev===null||prev===0)return{txt:'-',cls:'nt'};
+  const d=cur-prev,pct=prev!==0?(d/Math.abs(prev)*100).toFixed(1):0;
+  const pos=inv?d<0:d>0;
+  return{txt:`${d>=0?'+':''}${pct}% vs mês ant.`,cls:d===0?'nt':pos?'up':'dn'};
+}
+function getB(mes,conta){
+  const r=BAL.find(x=>x.mes_ano===mes&&x.conta===conta);
+  return r?r.saldo/100:0;
+}
+function getDRE(mes,linha){
+  return DRE.filter(x=>x.mes_ano===mes&&x.linha_dre===linha).reduce((s,x)=>s+(x.realizado/100),0);
+}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function kpi(label,value,sub,cls='nt',sc=''){
+  return `<div class="ind-card ${sc}"><div class="ind-label">${label}</div><div class="ind-value">${value}</div><div class="ind-sub ${cls}">${sub}</div></div>`;
+}
+function lineChart(id,labels,datasets,yFmt=null){
+  destroyChart(id);
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'line',data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:true,layout:{padding:{top:16}},
+      plugins:{legend:{labels:{boxWidth:10,font:{size:11}}},tooltip:{backgroundColor:'#1a2e1f',titleColor:'#fff',bodyColor:'#ccc',borderColor:'#2E7D32',borderWidth:.5}},
+      scales:{x:{grid:{color:GRID},ticks:{font:{size:11}}},y:{grid:{color:GRID},ticks:{font:{size:11},callback:yFmt||(v=>v)}}}}
+  });
+}
+
+function calcI(mes){
+  const AT=getB(mes,'1'),AC=getB(mes,'1.1'),ANC=getB(mes,'1.2');
+  const PC=getB(mes,'2.1'),PNC=getB(mes,'2.2'),PL=getB(mes,'2.4');
+  const DISP=getB(mes,'1.1.1.01')+getB(mes,'1.1.1.02')+getB(mes,'1.1.1.03');
+  const EST=getB(mes,'1.1.3'),CRED=getB(mes,'1.1.2.01');
+  const PC_ERR=getB(mes,'2.1.1.01')+getB(mes,'2.1.1.03');
+  const PC_CIC=PC-PC_ERR,AC_CIC=AC-DISP;
+  const CDG=PL+PNC-ANC,NCG=AC_CIC-PC_CIC,ST=CDG-NCG;
+  const CAP_EMP=DISP+NCG+ANC;
+  const CT_ON=getB(mes,'2.1.1.01')+getB(mes,'2.1.1.03')+getB(mes,'2.2.1.02')+getB(mes,'2.2.1.04');
+  const RL=getDRE(mes,'Receita Líquida');
+  const CMV=Math.abs(getDRE(mes,'CMV & CSP'));
+  const EB=getDRE(mes,'EBITDA Ajustado');
+  const PMR=RL>0?CRED/(RL/30):0;
+  const PME=CMV>0?EST/(CMV/30):0;
+  const PMP_B=getB(mes,'2.1.1.02')+getB(mes,'2.1.2.01')+getB(mes,'2.1.2.02')+getB(mes,'2.1.5.01')+getB(mes,'2.1.5.02')+getB(mes,'2.1.7.01')+getB(mes,'2.1.8.01');
+  const PMP=CMV>0?PMP_B/(CMV/30):0;
+  const CF=PMR+PME-PMP;
+  const PART_ON=CAP_EMP>0?CT_ON/CAP_EMP:0;
+  const PART_PL=CAP_EMP>0?PL/CAP_EMP:0;
+  const WACC=PART_ON*0.160252+PART_PL*0.01849;
+  return{AT,AC,ANC,PC,PNC,PL,DISP,EST,CRED,PC_ERR,PC_CIC,AC_CIC,CDG,NCG,ST,CAP_EMP,CT_ON,RL,CMV,EB,PMR,PME,PMP,CF,WACC,PART_ON,PART_PL};
+}
+
+async function init(){
+  try{
+    const resp=await fetch(API_URL);
+    const data=await resp.json();
+    if(data.status!=='ok')throw new Error(data.message);
+    BAL=(data.balanco||[]).map(r=>({
+      mes_ano:String(r.mes_ano||'').replace(/[^0-9\-]/g,'').slice(0,7),
+      conta:String(r.conta||'').trim(),
+      denominacao:String(r.denominacao||''),
+      saldo:Number(r.saldo||0),
+    }));
+    DRE=(data.rows||[]).map(r=>({
+      mes_ano:String(r.mes_ano||'').replace(/[^0-9\-]/g,'').slice(0,7),
+      linha_dre:String(r.linha_dre||'').trim(),
+      realizado:Number(r.realizado||0),
+    }));
+    const meses=[...new Set(BAL.map(r=>r.mes_ano).filter(m=>m&&m.match(/^\d{4}-\d{2}/)))].sort();
+    const sel=document.getElementById('fMes');
+    meses.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=fmtMes(m);sel.appendChild(o);});
+    if(meses.length)sel.value=meses[meses.length-1];
+    document.getElementById('loading').style.display='none';
+    document.getElementById('main-content').style.display='block';
+    renderIndicadores();
+  }catch(e){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('error-box').style.display='block';
+    document.getElementById('error-msg').textContent='Erro: '+e.message;
+  }
+}
+
+function renderIndicadores(){
+  const mes=document.getElementById('fMes').value;
+  const meses=[...new Set(BAL.map(r=>r.mes_ano).filter(m=>m&&m.match(/^\d{4}-\d{2}/)))].sort();
+  const idx=meses.indexOf(mes),prev=idx>0?meses[idx-1]:null;
+  document.getElementById('page-sub').textContent=`TerraZoo · ${fmtMes(mes)}`;
+  document.getElementById('periodo-badge').textContent=fmtMes(mes);
+
+  const I=calcI(mes),Ip=prev?calcI(prev):null;
+  const labels=meses.map(fmtMes);
+
+  // LIQUIDEZ
+  const LI=I.PC>0?I.DISP/I.PC:0,LS=I.PC>0?(I.AC-I.EST)/I.PC:0,LC=I.PC>0?I.AC/I.PC:0,SG=(I.PC+I.PNC)>0?I.AT/(I.PC+I.PNC):0;
+  document.getElementById('grid-liquidez').innerHTML=
+    kpi('Liq. Imediata',fmtI(LI),varSub(LI,Ip?Ip.DISP/Ip.PC:null).txt,varSub(LI,Ip?Ip.DISP/Ip.PC:null).cls,LI>=0.2?'status-ok':LI>=0.1?'status-warn':'status-bad')+
+    kpi('Liq. Seca',fmtI(LS),'(AC - Est) / PC','nt',LS>=1.5?'status-ok':LS>=1?'status-warn':'status-bad')+
+    kpi('Liq. Corrente',fmtI(LC),varSub(LC,Ip?Ip.AC/Ip.PC:null).txt,varSub(LC,Ip?Ip.AC/Ip.PC:null).cls,LC>=2?'status-ok':LC>=1?'status-warn':'status-bad')+
+    kpi('Solvência Geral',fmtI(SG),'AT / (PC + PNC)','nt',SG>=2?'status-ok':SG>=1?'status-warn':'status-bad');
+  lineChart('c-liquidez',labels,[
+    {label:'Liq. Imediata',data:meses.map(m=>{const i=calcI(m);return i.PC>0?+(i.DISP/i.PC).toFixed(4):0;}),borderColor:'rgba(46,125,50,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'Liq. Seca',data:meses.map(m=>{const i=calcI(m);return i.PC>0?+((i.AC-i.EST)/i.PC).toFixed(4):0;}),borderColor:'rgba(76,175,80,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'Liq. Corrente',data:meses.map(m=>{const i=calcI(m);return i.PC>0?+(i.AC/i.PC).toFixed(4):0;}),borderColor:'rgba(165,214,167,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+  ],v=>v+'x');
+
+  // FLEURIET
+  document.getElementById('grid-fleuriet').innerHTML=
+    kpi('Capital de Giro (CDG)',fmtM(I.CDG),varSub(I.CDG,Ip?.CDG).txt,varSub(I.CDG,Ip?.CDG).cls,I.CDG>0?'status-ok':'status-bad')+
+    kpi('Necessidade CG (NCG)',fmtM(I.NCG),varSub(I.NCG,Ip?.NCG,true).txt,varSub(I.NCG,Ip?.NCG,true).cls,I.NCG<I.CDG?'status-ok':'status-warn')+
+    kpi('Saldo Tesouraria (ST)',fmtM(I.ST),varSub(I.ST,Ip?.ST).txt,varSub(I.ST,Ip?.ST).cls,I.ST>0?'status-ok':'status-bad')+
+    kpi('Capital Empregado',fmtM(I.CAP_EMP),'Disp + NCG + ANC','nt','')+
+    kpi('AC Errático',fmtM(I.DISP),'Disponibilidades','nt','')+
+    kpi('AC Cíclico',fmtM(I.AC_CIC),'AC - Disponível','nt','')+
+    kpi('PC Errático',fmtM(I.PC_ERR),'Empréstimos CP','nt','')+
+    kpi('PC Cíclico',fmtM(I.PC_CIC),'PC - Errático','nt','');
+  lineChart('c-fleuriet',labels,[
+    {label:'CDG',data:meses.map(m=>Math.round(calcI(m).CDG/1000)),borderColor:'rgba(46,125,50,1)',backgroundColor:'rgba(46,125,50,0.1)',fill:true,borderWidth:2,pointRadius:3,tension:.3},
+    {label:'NCG',data:meses.map(m=>Math.round(calcI(m).NCG/1000)),borderColor:'rgba(230,81,0,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'ST',data:meses.map(m=>Math.round(calcI(m).ST/1000)),borderColor:'rgba(21,101,192,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+  ],v=>'R$'+v.toLocaleString('pt-BR')+'K');
+
+  // PRAZOS
+  document.getElementById('grid-prazos').innerHTML=
+    kpi('PMR',fmtD(I.PMR),varSub(I.PMR,Ip?.PMR,true).txt,varSub(I.PMR,Ip?.PMR,true).cls,I.PMR<=40?'status-ok':I.PMR<=50?'status-warn':'status-bad')+
+    kpi('PME',fmtD(I.PME),'Prazo médio estocagem','nt',I.PME<=52?'status-ok':I.PME<=60?'status-warn':'status-bad')+
+    kpi('PMP',fmtD(I.PMP),'Prazo médio pagamento','nt',I.PMP>=I.PMR?'status-ok':'status-warn')+
+    kpi('Ciclo Financeiro',fmtD(I.CF),I.CF<0?'▲ Favorável':'▼ Desfavorável',I.CF<0?'up':'dn',I.CF<0?'status-ok':I.CF<35?'status-warn':'status-bad');
+  document.getElementById('t-prazos').innerHTML=`<thead><tr><th>Período</th><th>PMR</th><th>PME</th><th>PMP</th><th>Ciclo Fin.</th></tr></thead><tbody>${
+    meses.map(m=>{const i=calcI(m);return `<tr><td>${fmtMes(m)}</td><td>${fmtN(i.PMR,1)}</td><td>${fmtN(i.PME,1)}</td><td>${fmtN(i.PMP,1)}</td><td style="color:${i.CF<0?'var(--green)':'var(--red)'};font-weight:600">${fmtN(i.CF,1)}</td></tr>`;}).join('')
+  }</tbody>`;
+  lineChart('c-prazos',labels,[
+    {label:'PMR',data:meses.map(m=>+calcI(m).PMR.toFixed(1)),borderColor:'rgba(46,125,50,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'PME',data:meses.map(m=>+calcI(m).PME.toFixed(1)),borderColor:'rgba(230,81,0,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'PMP',data:meses.map(m=>+calcI(m).PMP.toFixed(1)),borderColor:'rgba(21,101,192,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'Ciclo Fin.',data:meses.map(m=>+calcI(m).CF.toFixed(1)),borderColor:'rgba(156,39,176,1)',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:.3},
+  ],v=>v+' dias');
+
+  // WACC
+  const CT_NAT=I.PC+I.PNC-I.CT_ON-I.PL;
+  document.getElementById('grid-wacc').innerHTML=
+    kpi('Capital Empregado',fmtM(I.CAP_EMP),'Disp + NCG + ANC','nt','')+
+    kpi('CT Onerosos',fmtM(I.CT_ON),fmtP(I.PART_ON)+' do cap.','nt','')+
+    kpi('Capital Próprio',fmtM(I.PL),fmtP(I.PART_PL)+' do cap.','nt','')+
+    kpi('WACC',fmtP(I.WACC),'Custo médio pond.','nt',I.WACC<0.02?'status-ok':'status-warn')+
+    kpi('Custo CT Onerosos',fmtP(0.160252),'Taxa média anual','nt','')+
+    kpi('Custo Cap. Próprio',fmtP(0.01849),'Taxa mínima','nt','');
+  destroyChart('c-fontes');
+  charts['c-fontes']=new Chart(document.getElementById('c-fontes'),{type:'doughnut',
+    data:{labels:['CT Onerosos','CT Naturais','Cap. Próprio'],datasets:[{data:[Math.round(I.CT_ON/1e4)/100,Math.round(CT_NAT/1e4)/100,Math.round(I.PL/1e4)/100],backgroundColor:['rgba(198,40,40,0.8)','rgba(230,81,0,0.8)','rgba(46,125,50,0.8)'],borderColor:'#fff',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:ctx=>` R$ ${ctx.raw}M`}}}}
+  });
+  lineChart('c-wacc',labels,[{label:'WACC%',data:meses.map(m=>+(calcI(m).WACC*100).toFixed(4)),borderColor:'rgba(46,125,50,1)',backgroundColor:'rgba(46,125,50,0.1)',fill:true,borderWidth:2,pointRadius:3,tension:.3}],v=>v+'%');
+
+  // EVA/NOPAT
+  const NOPAT=I.EB,ROCE=I.CAP_EMP>0?NOPAT/I.CAP_EMP:0,EVA=(ROCE-I.WACC)*I.CAP_EMP;
+  document.getElementById('grid-eva').innerHTML=
+    kpi('NOPAT',fmtM(NOPAT),varSub(NOPAT,Ip?.EB).txt,varSub(NOPAT,Ip?.EB).cls,NOPAT>0?'status-ok':'status-bad')+
+    kpi('ROCE',fmtP(ROCE),'Retorno s/ cap. emp.','nt',ROCE>I.WACC?'status-ok':'status-bad')+
+    kpi('WACC',fmtP(I.WACC),'Custo médio pond.','nt','')+
+    kpi('EVA',fmtM(EVA),EVA>0?'▲ Criando valor':'▼ Destruindo valor',EVA>0?'up':'dn',EVA>0?'status-ok':'status-bad');
+  lineChart('c-eva',labels,[
+    {label:'NOPAT (R$K)',data:meses.map(m=>Math.round(calcI(m).EB/1000)),borderColor:'rgba(46,125,50,1)',backgroundColor:'rgba(46,125,50,0.1)',fill:true,borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y'},
+    {label:'ROCE%',data:meses.map(m=>{const i=calcI(m);return i.CAP_EMP>0?+(i.EB/i.CAP_EMP*100).toFixed(2):0;}),type:'line',borderColor:'rgba(230,81,0,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y2'},
+  ]);
+
+  // RENTABILIDADE
+  const ROA=I.AT>0?NOPAT/I.AT:0,ROE=I.PL>0?NOPAT/I.PL:0,MG=I.RL>0?NOPAT/I.RL:0;
+  document.getElementById('grid-rent').innerHTML=
+    kpi('ROA',fmtP(ROA),varSub(ROA,Ip?Ip.EB/(Ip.AT||1):null).txt,varSub(ROA,Ip?Ip.EB/(Ip.AT||1):null).cls,ROA>0?'status-ok':'status-bad')+
+    kpi('ROE',fmtP(ROE),'Retorno s/ PL','nt',ROE>0?'status-ok':'status-bad')+
+    kpi('Margem EBITDA',fmtP(MG),'EBITDA Adj / RL','nt',MG>0.05?'status-ok':MG>0?'status-warn':'status-bad')+
+    kpi('EBITDA Ajustado',fmtM(NOPAT),'Resultado operacional','nt',NOPAT>0?'status-ok':'status-bad');
+  lineChart('c-rent',labels,[
+    {label:'ROA%',data:meses.map(m=>{const i=calcI(m);return i.AT>0?+(i.EB/i.AT*100).toFixed(4):0;}),borderColor:'rgba(46,125,50,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'ROE%',data:meses.map(m=>{const i=calcI(m);return i.PL>0?+(i.EB/i.PL*100).toFixed(4):0;}),borderColor:'rgba(21,101,192,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'Marg%',data:meses.map(m=>{const i=calcI(m);return i.RL>0?+(i.EB/i.RL*100).toFixed(4):0;}),borderColor:'rgba(230,81,0,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+  ],v=>v+'%');
+}
+
+init();
+</script>
+</body>
+</html>
