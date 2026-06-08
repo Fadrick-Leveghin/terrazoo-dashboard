@@ -368,26 +368,39 @@ async function fetchDados() {
 function popularFiltros() {
   const lojas   = [...new Set(DADOS.map(r=>r.loja))].sort();
   const anos    = [...new Set(DADOS.map(r=>r.mes_ano.slice(0,4)))].sort();
-  const meses   = [...new Set(DADOS.map(r=>r.mes_ano.slice(5,7)))].sort();
+  // Só meses que têm realizado em 2026
+  const meses26real = [...new Set(
+    DADOS.filter(r=>r.mes_ano.startsWith('2026') && r.realizado/100 !== 0 && r.linha_dre==='Receita Bruta')
+      .map(r=>r.mes_ano.slice(5,7))
+  )].sort();
   const sl = document.getElementById('filtroLoja');
   const sp = document.getElementById('filtroPeriodo');
   lojas.forEach(l => { const o = document.createElement('option'); o.value=l; o.textContent=l; sl.appendChild(o); });
-  meses.forEach(m => {
+  meses26real.forEach(m => {
     const nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
     const o = document.createElement('option'); o.value=m; o.textContent=nomes[parseInt(m)-1]; sp.appendChild(o);
   });
   const ultimoAno = anos[anos.length-1];
-  const ultimoMes = meses[meses.length-1];
+  const ultimoMes = meses26real[meses26real.length-1];
   const nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   document.getElementById('page-sub').textContent = `TerraZoo · ${lojas.length} lojas · Anos: ${anos.join(', ')}`;
   document.getElementById('footer-update').textContent = `Último período: ${nomes[parseInt(ultimoMes)-1]}/${ultimoAno}`;
 }
 
 function dadosPorAno(ano, loja, mes) {
+  // Para 2025, limitar aos meses que têm realizado em 2026
+  let mesesPermitidos = null;
+  if (ano === '2025') {
+    mesesPermitidos = [...new Set(
+      DADOS.filter(r=>r.mes_ano.startsWith('2026') && r.realizado/100 !== 0 && r.linha_dre==='Receita Bruta')
+        .map(r=>r.mes_ano.slice(5,7))
+    )];
+  }
   return DADOS.filter(r =>
     r.mes_ano.startsWith(ano) &&
     (loja === 'TODAS' || r.loja === loja) &&
-    (mes === 'TODOS' || r.mes_ano.slice(5,7) === mes)
+    (mes === 'TODOS' || r.mes_ano.slice(5,7) === mes) &&
+    (mesesPermitidos === null || mesesPermitidos.includes(r.mes_ano.slice(5,7)))
   );
 }
 
@@ -546,8 +559,12 @@ function renderRegional(linhaDRE, containerId, absVal) {
   Object.keys(charts).filter(k=>k.startsWith(containerId+'-')).forEach(id => destroyChart(id));
   container.innerHTML = '';
 
-  const gruposUnicos = [...new Set(Object.values(REGIOES))].sort();
-  const grupos = ['Consolidado', ...gruposUnicos];
+  const ORDEM_GRUPOS = ['São Luís','Interior MA','Outros Estados','Atacado','ADM','CD','RV'];
+  const gruposUnicos = [...new Set(Object.values(REGIOES))];
+  const grupos = ['Consolidado',
+    ...ORDEM_GRUPOS.filter(g => gruposUnicos.includes(g)),
+    ...gruposUnicos.filter(g => !ORDEM_GRUPOS.includes(g)).sort()
+  ];
   const ids = grupos.map((_,i) => containerId+'-'+i);
 
   function somaGrupo(rows, grupo) {
@@ -680,11 +697,10 @@ function renderFaturamento() {
   const rb25P = agregaPorPeriodo(rb25);
   const rb26P = agregaPorPeriodo(rb26);
 
-  // Meses comuns (ex: 01, 02, 03...)
-  const meses = [...new Set([
-    ...Object.keys(rl25P).map(p=>p.slice(5,7)),
-    ...Object.keys(rl26P).map(p=>p.slice(5,7))
-  ])].sort();
+  // Meses: só os que têm realizado em 2026
+  const meses = [...new Set(
+    Object.keys(rl26P).filter(p => (rl26P[p]?.realizado||0) !== 0).map(p=>p.slice(5,7))
+  )].sort();
   const nomeMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const labels = meses.map(m => nomeMes[parseInt(m)-1]);
 
@@ -866,7 +882,9 @@ function renderMargem() {
   const rl25P = agregaPorPeriodo(rl25);
   const rl26P = agregaPorPeriodo(rl26);
 
-  const meses = [...new Set([...Object.keys(mb25P),...Object.keys(mb26P)].map(p=>p.slice(5,7)))].sort();
+  const meses = [...new Set(
+    Object.keys(mb26P).filter(p=>(mb26P[p]?.realizado||0)!==0).map(p=>p.slice(5,7))
+  )].sort();
   const nomeMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const labels = meses.map(m=>nomeMes[parseInt(m)-1]);
 
@@ -991,7 +1009,9 @@ function renderSGA() {
   const rl25P = agregaPorPeriodo(rl25);
   const rl26P = agregaPorPeriodo(rl26);
 
-  const meses = [...new Set([...Object.keys(sg25P),...Object.keys(sg26P)].map(p=>p.slice(5,7)))].sort();
+  const meses = [...new Set(
+    Object.keys(sg26P).filter(p=>(sg26P[p]?.realizado||0)!==0).map(p=>p.slice(5,7))
+  )].sort();
   const nomeMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const labels = meses.map(m=>nomeMes[parseInt(m)-1]);
 
@@ -1105,7 +1125,9 @@ function renderEBITDA() {
   const rl25P = agregaPorPeriodo(rl25);
   const rl26P = agregaPorPeriodo(rl26);
 
-  const meses = [...new Set([...Object.keys(eb25P),...Object.keys(eb26P)].map(p=>p.slice(5,7)))].sort();
+  const meses = [...new Set(
+    Object.keys(eb26P).filter(p=>(eb26P[p]?.realizado||0)!==0).map(p=>p.slice(5,7))
+  )].sort();
   const nomeMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const labels = meses.map(m=>nomeMes[parseInt(m)-1]);
 
