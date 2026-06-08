@@ -155,27 +155,82 @@ function lineChart(id,labels,datasets,yFmt=null){
 }
 
 function calcI(mes){
-  const AT=getB(mes,'1'),AC=getB(mes,'1.1'),ANC=getB(mes,'1.2');
-  const PC=getB(mes,'2.1'),PNC=getB(mes,'2.2'),PL=getB(mes,'2.4');
-  const DISP=getB(mes,'1.1.1.01')+getB(mes,'1.1.1.02')+getB(mes,'1.1.1.03');
-  const EST=getB(mes,'1.1.3'),CRED=getB(mes,'1.1.2.01');
-  const PC_ERR=getB(mes,'2.1.1.01')+getB(mes,'2.1.1.03');
-  const PC_CIC=PC-PC_ERR,AC_CIC=AC-DISP;
-  const CDG=PL+PNC-ANC,NCG=AC_CIC-PC_CIC,ST=CDG-NCG;
-  const CAP_EMP=DISP+NCG+ANC;
-  const CT_ON=getB(mes,'2.1.1.01')+getB(mes,'2.1.1.03')+getB(mes,'2.2.1.02')+getB(mes,'2.2.1.04');
-  const RL=getDRE(mes,'Receita Líquida');
-  const CMV=Math.abs(getDRE(mes,'CMV & CSP'));
-  const EB=getDRE(mes,'EBITDA Ajustado');
-  const PMR=RL>0?CRED/(RL/30):0;
-  const PME=CMV>0?EST/(CMV/30):0;
-  const PMP_B=getB(mes,'2.1.1.02')+getB(mes,'2.1.2.01')+getB(mes,'2.1.2.02')+getB(mes,'2.1.5.01')+getB(mes,'2.1.5.02')+getB(mes,'2.1.7.01')+getB(mes,'2.1.8.01');
-  const PMP=CMV>0?PMP_B/(CMV/30):0;
-  const CF=PMR+PME-PMP;
-  const PART_ON=CAP_EMP>0?CT_ON/CAP_EMP:0;
-  const PART_PL=CAP_EMP>0?PL/CAP_EMP:0;
-  const WACC=PART_ON*0.160252+PART_PL*0.01849;
-  return{AT,AC,ANC,PC,PNC,PL,DISP,EST,CRED,PC_ERR,PC_CIC,AC_CIC,CDG,NCG,ST,CAP_EMP,CT_ON,RL,CMV,EB,PMR,PME,PMP,CF,WACC,PART_ON,PART_PL};
+  // Balanço Consolidado
+  const AT  = getB(mes,'1');
+  const AC  = getB(mes,'1.1');
+  const ANC = getB(mes,'1.2');
+  const PC  = getB(mes,'2.1');
+  const PNC = getB(mes,'2.2');
+  const PL  = getB(mes,'2.4');
+
+  // Disponível = Caixa + Bancos + Aplicações
+  const DISP = getB(mes,'1.1.1.01') + getB(mes,'1.1.1.02') + getB(mes,'1.1.1.03');
+
+  // Estoques e Outros Ativos (para PME)
+  const EST      = getB(mes,'1.1.3');
+  const OUT_ATIV = getB(mes,'1.1.6');
+
+  // Clientes (para PMR) — valor direto do Balanço Consolidado
+  const CRED = getB(mes,'1.1.2.01');
+
+  // Liq. Seca = (AC - EST - Despesas Antecipadas) / PC
+  const DESP_ANT = getB(mes,'1.1.7');
+
+  // PC Errático = Empréstimos CP + Leasings CP
+  const PC_ERR = getB(mes,'2.1.1.01') + getB(mes,'2.1.1.03');
+  const PC_CIC = PC - PC_ERR;
+  const AC_CIC = AC - DISP;
+
+  // Fleuriet
+  const CDG = PL + PNC - ANC;
+  const NCG = AC_CIC - PC_CIC;
+  const ST  = CDG - NCG;
+
+  // Capital Empregado
+  const CAP_EMP = DISP + NCG + ANC;
+
+  // CT Onerosos = Empréstimos CP + Leasings CP + Empréstimos LP (sem Leasings LP)
+  const CT_ON = getB(mes,'2.1.1.01') + getB(mes,'2.1.1.03') + getB(mes,'2.2.1.02');
+
+  // DRE consolidada (soma todas as lojas do banco)
+  const RL = getDRE(mes,'Receita Líquida');
+
+  // Prazos — denominador = RL consolidada (igual ao Excel)
+  // PMR = Clientes / (RL/30)
+  const PMR = RL>0 ? CRED/(RL/30) : 0;
+
+  // PME = (Estoques + Outros Ativos) / (RL/30)
+  const PME = RL>0 ? (EST + OUT_ATIV)/(RL/30) : 0;
+
+  // PMP = (Fornec + AdiantCli + ContasPagar + Provisões + Parcel + ObrTrib + ObrTrab + LucroDiv) / (RL/30)
+  const PMP_B = getB(mes,'2.1.1.02') +  // Fornecedores
+                getB(mes,'2.1.9.01') +   // Adiantamentos de Clientes
+                getB(mes,'2.1.5.01') +   // Contas a Pagar Utilidades
+                getB(mes,'2.1.5.02') +   // Outras Contas a Pagar
+                getB(mes,'2.1.6.01') +   // Lucros e Dividendos
+                getB(mes,'2.1.7.01') +   // Provisões Trabalhistas
+                getB(mes,'2.1.8.01') +   // Parcelamentos
+                getB(mes,'2.1.2.02') +   // Obrigações Tributárias
+                getB(mes,'2.1.2.01');    // Obrigações Trabalhistas
+  const PMP = RL>0 ? PMP_B/(RL/30) : 0;
+  const CF  = PMR + PME - PMP;
+
+  // WACC
+  const PART_ON = CAP_EMP>0 ? CT_ON/CAP_EMP : 0;
+  const PART_PL = CAP_EMP>0 ? PL/CAP_EMP : 0;
+  const WACC = PART_ON*0.160252 + PART_PL*0.01849;
+
+  // NOPAT/EVA/ROCE/ROA/LL — valores pré-calculados do Balanço Consolidado
+  // Escala: R$ = saldo/100, Ratios (ROCE,ROA) = saldo/1e8
+  const NOPAT = (getB(mes,'IND.NOPAT'))/100;   // já dividiu por 100 no getB
+  const EVA   = (getB(mes,'IND.EVA'))/100;
+  const LL    = (getB(mes,'IND.LL'))/100;
+  const ROCE  = (getB(mes,'IND.ROCE'))/1e6;    // ratio: saldo/1e8, getB já dividiu por 100 → /1e6 extra
+  const ROA   = (getB(mes,'IND.ROA'))/1e6;
+
+  return {AT,AC,ANC,PC,PNC,PL,DISP,EST,OUT_ATIV,CRED,DESP_ANT,
+          PC_ERR,PC_CIC,AC_CIC,CDG,NCG,ST,CAP_EMP,CT_ON,
+          RL,PMR,PME,PMP,CF,WACC,PART_ON,PART_PL,NOPAT,LL,EVA,ROCE,ROA};
 }
 
 async function init(){
@@ -221,7 +276,10 @@ function renderIndicadores(){
   const labels=meses.map(fmtMes);
 
   // LIQUIDEZ
-  const LI=I.PC>0?I.DISP/I.PC:0,LS=I.PC>0?(I.AC-I.EST)/I.PC:0,LC=I.PC>0?I.AC/I.PC:0,SG=(I.PC+I.PNC)>0?I.AT/(I.PC+I.PNC):0;
+  const LI=I.PC>0?I.DISP/I.PC:0;
+  const LS=I.PC>0?(I.AC-I.EST-I.DESP_ANT)/I.PC:0;  // Excel: (AC-EST-DespAnt)/PC
+  const LC=I.PC>0?I.AC/I.PC:0;
+  const SG=(I.PC+I.PNC)>0?I.AT/(I.PC+I.PNC):0;
   document.getElementById('grid-liquidez').innerHTML=
     kpi('Liq. Imediata',fmtI(LI),varSub(LI,Ip?Ip.DISP/Ip.PC:null).txt,varSub(LI,Ip?Ip.DISP/Ip.PC:null).cls,LI>=0.2?'status-ok':LI>=0.1?'status-warn':'status-bad')+
     kpi('Liq. Seca',fmtI(LS),'(AC - Est) / PC','nt',LS>=1.5?'status-ok':LS>=1?'status-warn':'status-bad')+
@@ -281,29 +339,31 @@ function renderIndicadores(){
   });
   lineChart('c-wacc',labels,[{label:'WACC%',data:meses.map(m=>+(calcI(m).WACC*100).toFixed(2)),borderColor:'rgba(46,125,50,1)',backgroundColor:'rgba(46,125,50,0.1)',fill:true,borderWidth:2,pointRadius:3,tension:.3}],v=>v+'%');
 
-  // EVA/NOPAT
-  const NOPAT=I.EB,ROCE=I.CAP_EMP>0?NOPAT/I.CAP_EMP:0,EVA=(ROCE-I.WACC)*I.CAP_EMP;
+  // EVA/NOPAT — valores pré-calculados do Excel
+  const NOPAT=I.NOPAT, ROCE=I.ROCE, EVA=I.EVA;
   document.getElementById('grid-eva').innerHTML=
-    kpi('NOPAT',fmtM(NOPAT),varSub(NOPAT,Ip?.EB).txt,varSub(NOPAT,Ip?.EB).cls,NOPAT>0?'status-ok':'status-bad')+
+    kpi('NOPAT',fmtM(NOPAT),varSub(NOPAT,Ip?.NOPAT).txt,varSub(NOPAT,Ip?.NOPAT).cls,NOPAT>0?'status-ok':'status-bad')+
     kpi('ROCE',fmtP(ROCE),'Retorno s/ cap. emp.','nt',ROCE>I.WACC?'status-ok':'status-bad')+
     kpi('WACC',fmtP(I.WACC),'Custo médio pond.','nt','')+
     kpi('EVA',fmtM(EVA),EVA>0?'▲ Criando valor':'▼ Destruindo valor',EVA>0?'up':'dn',EVA>0?'status-ok':'status-bad');
   lineChart('c-eva',labels,[
-    {label:'NOPAT (R$K)',data:meses.map(m=>Math.round(calcI(m).EB/1000)),borderColor:'rgba(46,125,50,1)',backgroundColor:'rgba(46,125,50,0.1)',fill:true,borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y'},
-    {label:'ROCE%',data:meses.map(m=>{const i=calcI(m);return i.CAP_EMP>0?+(i.EB/i.CAP_EMP*100).toFixed(2):0;}),type:'line',borderColor:'rgba(230,81,0,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y2'},
+    {label:'NOPAT (R$K)',data:meses.map(m=>Math.round(calcI(m).NOPAT/1000)),borderColor:'rgba(46,125,50,1)',backgroundColor:'rgba(46,125,50,0.1)',fill:true,borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y'},
+    {label:'ROCE%',data:meses.map(m=>+(calcI(m).ROCE*100).toFixed(4)),type:'line',borderColor:'rgba(230,81,0,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y2'},
   ]);
 
-  // RENTABILIDADE
-  const ROA=I.AT>0?NOPAT/I.AT:0,ROE=I.PL>0?NOPAT/I.PL:0,MG=I.RL>0?NOPAT/I.RL:0;
+  // RENTABILIDADE — ROA e ROE pré-calculados
+  const ROA=I.ROA;
+  const ROE=I.PL>0?I.LL/I.PL:0;
+  const MG=I.RL>0?NOPAT/I.RL:0;
   document.getElementById('grid-rent').innerHTML=
-    kpi('ROA',fmtP(ROA),varSub(ROA,Ip?Ip.EB/(Ip.AT||1):null).txt,varSub(ROA,Ip?Ip.EB/(Ip.AT||1):null).cls,ROA>0?'status-ok':'status-bad')+
-    kpi('ROE',fmtP(ROE),'Retorno s/ PL','nt',ROE>0?'status-ok':'status-bad')+
-    kpi('Margem EBITDA',fmtP(MG),'EBITDA Adj / RL','nt',MG>0.05?'status-ok':MG>0?'status-warn':'status-bad')+
-    kpi('EBITDA Ajustado',fmtM(NOPAT),'Resultado operacional','nt',NOPAT>0?'status-ok':'status-bad');
+    kpi('ROA',fmtP(ROA),varSub(ROA,Ip?.ROA).txt,varSub(ROA,Ip?.ROA).cls,ROA>0?'status-ok':'status-bad')+
+    kpi('ROE',fmtP(ROE),'Lucro Líquido / PL','nt',ROE>0?'status-ok':'status-bad')+
+    kpi('Margem NOPAT',fmtP(MG),'NOPAT / RL','nt',MG>0.05?'status-ok':MG>0?'status-warn':'status-bad')+
+    kpi('Lucro Líquido',fmtM(I.LL),'Resultado do período','nt',I.LL>0?'status-ok':'status-bad');
   lineChart('c-rent',labels,[
-    {label:'ROA%',data:meses.map(m=>{const i=calcI(m);return i.AT>0?+(i.EB/i.AT*100).toFixed(2):0;}),borderColor:'rgba(46,125,50,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
-    {label:'ROE%',data:meses.map(m=>{const i=calcI(m);return i.PL>0?+(i.EB/i.PL*100).toFixed(2):0;}),borderColor:'rgba(21,101,192,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
-    {label:'Marg%',data:meses.map(m=>{const i=calcI(m);return i.RL>0?+(i.EB/i.RL*100).toFixed(2):0;}),borderColor:'rgba(230,81,0,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'ROA%',data:meses.map(m=>+(calcI(m).ROA*100).toFixed(4)),borderColor:'rgba(46,125,50,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'ROE%',data:meses.map(m=>{const i=calcI(m);return i.PL>0?+(i.LL/i.PL*100).toFixed(4):0;}),borderColor:'rgba(21,101,192,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'Marg%',data:meses.map(m=>{const i=calcI(m);return i.RL>0?+(i.NOPAT/i.RL*100).toFixed(4):0;}),borderColor:'rgba(230,81,0,1)',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
   ],v=>v+'%');
 }
 
