@@ -573,7 +573,7 @@ function renderRegional(linhaDRE, containerId, absVal) {
       .reduce((s,r) => ({ realizado: s.realizado+r.realizado, orcado: s.orcado+r.orcado }), {realizado:0,orcado:0});
   }
 
-  const numCols = grupos.length <= 2 ? grupos.length : grupos.length <= 4 ? 2 : 3;
+  const numCols = 2;
   container.style.gridTemplateColumns = `repeat(${numCols}, 1fr)`;
 
   const mes = document.getElementById('filtroPeriodo').value;
