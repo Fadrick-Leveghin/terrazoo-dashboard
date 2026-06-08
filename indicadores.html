@@ -193,7 +193,7 @@ function calcI(mes){
   const CT_ON = getB(mes,'2.1.1.01') + getB(mes,'2.1.1.03') + getB(mes,'2.2.1.02');
 
   // RL Consolidada (da DRE Consolidada — inclui Lynkz)
-  const RL_CONS = getB(mes,'IND.RL_CONS') / 100;
+  const RL_CONS = getB(mes,'IND.RL_CONS'); // getB já divide por 100
 
   // Prazos — denominador = RL Consolidada (igual ao Excel)
   const PMR = RL_CONS>0 ? CRED/(RL_CONS/30) : 0;
