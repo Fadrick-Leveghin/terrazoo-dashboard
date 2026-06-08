@@ -577,19 +577,46 @@ function renderRegional(linhaDRE, containerId, absVal) {
   container.style.gridTemplateColumns = `repeat(${numCols}, 1fr)`;
 
   const mes = document.getElementById('filtroPeriodo').value;
-  const d25all = dadosPorAno('2025','TODAS', mes);
-  const d26all = dadosPorAno('2026','TODAS', mes);
-  const rows25 = getLinha(d25all, linhaDRE);
-  const rows26 = getLinha(d26all, linhaDRE);
+
+  // Identificar meses com realizado em 2026
+  const mesesReal26 = [...new Set(
+    DADOS.filter(r=>r.mes_ano.startsWith('2026') && r.realizado/100 !== 0 && r.linha_dre===linhaDRE)
+      .map(r=>r.mes_ano.slice(5,7))
+  )].sort();
+  const ultimoMesReal = mesesReal26.length > 0 ? mesesReal26[mesesReal26.length-1] : '12';
+
+  // 2025: só os meses com realizado em 2026
+  const d25all = DADOS.filter(r =>
+    r.mes_ano.startsWith('2025') &&
+    (mes === 'TODOS' ? mesesReal26.includes(r.mes_ano.slice(5,7)) : r.mes_ano.slice(5,7) === mes)
+  );
+
+  // 2026 realizado: só meses com realizado
+  const d26real = DADOS.filter(r =>
+    r.mes_ano.startsWith('2026') &&
+    (mes === 'TODOS' ? mesesReal26.includes(r.mes_ano.slice(5,7)) : r.mes_ano.slice(5,7) === mes)
+  );
+
+  // 2026 orçado: até o último mês com realizado (não o ano todo)
+  const d26orc = DADOS.filter(r =>
+    r.mes_ano.startsWith('2026') &&
+    (mes === 'TODOS' ? r.mes_ano.slice(5,7) <= ultimoMesReal : r.mes_ano.slice(5,7) === mes)
+  );
+
+  const rows25    = getLinha(d25all,  linhaDRE);
+  const rows26r   = getLinha(d26real, linhaDRE);
+  const rows26o   = getLinha(d26orc,  linhaDRE);
   const nomeMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const mesLabel = mes === 'TODOS' ? 'Acum.' : nomeMes[parseInt(mes)-1];
+  const ateLabel = mes === 'TODOS' ? `Acum./${ultimoMesReal}` : nomeMes[parseInt(mes)-1];
 
   grupos.forEach((grupo, i) => {
-    const v25 = somaGrupo(rows25, grupo);
-    const v26 = somaGrupo(rows26, grupo);
-    const real25 = Math.round(absVal ? Math.abs(v25.realizado) : v25.realizado);
-    const real26 = Math.round(absVal ? Math.abs(v26.realizado) : v26.realizado);
-    const orc26  = Math.round(absVal ? Math.abs(v26.orcado)    : v26.orcado);
+    const v25  = somaGrupo(rows25,  grupo);
+    const v26r = somaGrupo(rows26r, grupo);
+    const v26o = somaGrupo(rows26o, grupo);
+    const real25 = Math.round(absVal ? Math.abs(v25.realizado)  : v25.realizado);
+    const real26 = Math.round(absVal ? Math.abs(v26r.realizado) : v26r.realizado);
+    const orc26  = Math.round(absVal ? Math.abs(v26o.orcado)    : v26o.orcado);
     const varAA  = real25>0 ? ((real26-real25)/real25*100).toFixed(1) : '0,0';
     const varOrc = orc26>0  ? ((real26-orc26)/orc26*100).toFixed(1)  : '0,0';
     const corAA  = absVal
@@ -652,7 +679,7 @@ function renderRegional(linhaDRE, containerId, absVal) {
     charts[ids[i]] = new Chart(canvas, {
       type:'bar',
       data:{
-        labels:[`${mesLabel}/25 - Real`,`${mesLabel}/26 - Real`,`${mesLabel}/26 - Orç`],
+        labels:[`${mesLabel}/25 - Real`,`${mesLabel}/26 - Real`,`${ateLabel}/26 - Orç`],
         datasets:[{
           data:[real25,real26,orc26],
           backgroundColor:['rgba(165,214,167,0.85)','rgba(27,94,32,0.9)','rgba(96,170,110,0.7)'],
