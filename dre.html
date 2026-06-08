@@ -254,9 +254,12 @@ async function init() {
 }
 
 function popularFiltros() {
+  // Só meses com realizado em 2026 (Receita Bruta como referência)
   const meses = [...new Set(
     DADOS
-      .filter(r => r.mes_ano.startsWith('2026'))
+      .filter(r => r.mes_ano.startsWith('2026') &&
+                   r.linha_dre === 'Receita Bruta' &&
+                   Number(r.realizado) !== 0)
       .map(r => r.mes_ano.slice(5,7))
       .filter(m => m && m.match(/^\d{2}$/))
   )].sort();
@@ -345,10 +348,18 @@ function renderDRE() {
   const mesIdx   = parseInt(mes)-1;
   const mesLabel = NOM_MES[mesIdx];
 
-  // Meses para acumulado
-  const meses26 = periodo==='acumulado'
-    ? [...Array(mesIdx+1)].map((_,i)=>String(i+1).padStart(2,'0'))
-    : [mes];
+  // Meses com realizado em 2026
+  const mesesComReal = [...new Set(
+    DADOS.filter(r => r.mes_ano.startsWith('2026') &&
+                      r.linha_dre === 'Receita Bruta' &&
+                      Number(r.realizado) !== 0)
+      .map(r => r.mes_ano.slice(5,7))
+  )].sort();
+
+  // Meses para o período selecionado
+  const meses26 = periodo === 'acumulado'
+    ? mesesComReal.filter(m => m <= mes)
+    : (mesesComReal.includes(mes) ? [mes] : []);
   const meses25 = meses26;
 
   const raw26 = filtrarVisao(getDados('2026', meses26));
