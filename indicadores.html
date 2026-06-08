@@ -214,12 +214,12 @@ function calcI(mes){
   const PART_ON  = CAP_EMP>0 ? CT_ON/CAP_EMP : 0;
   const PART_PL  = CAP_EMP>0 ? PL/CAP_EMP : 0;
 
-  // Indicadores pré-calculados do Excel
-  const NOPAT = getB(mes,'IND.NOPAT') / 100;
-  const EVA   = getB(mes,'IND.EVA')   / 100;
-  const LL    = getB(mes,'IND.LL')    / 100;
-  const ROCE  = getB(mes,'IND.ROCE')  / 1e6;
-  const ROA   = getB(mes,'IND.ROA')   / 1e6;
+  // Indicadores pré-calculados do Excel (getB já divide por 100)
+  const NOPAT = getB(mes,'IND.NOPAT');      // armazenado em centavos → getB/100 = R$
+  const EVA   = getB(mes,'IND.EVA');        // idem
+  const LL    = getB(mes,'IND.LL');         // idem
+  const ROCE  = getB(mes,'IND.ROCE')  / 1e6; // armazenado *1e8 → getB/100 → /1e6 = ratio
+  const ROA   = getB(mes,'IND.ROA')   / 1e6; // idem
   const ROE   = PL>0 ? LL/PL : 0;
   const RL    = getDRE(mes,'Receita Líquida'); // RL banco (TerraZoo)
   const MG_NOPAT = RL_CONS>0 ? NOPAT/RL_CONS : 0;
