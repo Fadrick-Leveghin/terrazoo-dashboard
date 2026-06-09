@@ -182,6 +182,17 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
       </table>
     </div>
   </div>
+  <div class="tbl-wrap" style="margin-top:28px">
+    <div class="tbl-header">
+      <div class="tbl-title">Forecast Ajustado 2026 — Tendência por Linha</div>
+    </div>
+    <div class="tbl-outer">
+      <table id="tbl-ajustado">
+        <thead id="thead-ajustado"></thead>
+        <tbody id="tbody-ajustado"></tbody>
+      </table>
+    </div>
+  </div>
 
 </main>
 
@@ -419,6 +430,9 @@ function renderForecast(){
       <td class="${ah.cls}">${ah.txt}</td>
     </tr>`;
   }).join('');
+
+  // ── Segunda tabela: Forecast Ajustado por Tendência ──
+  renderForecastAjustado(rows, mesesReal, mesesOrc);
 }
 
 function exportarCSV(){
@@ -429,6 +443,90 @@ function exportarCSV(){
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'}));
   a.download=`TerraZoo_Forecast_2026_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
+}
+
+// ── Forecast Ajustado por Tendência ──
+// Lógica: fator por linha = Real Jan-Abr ÷ Orç Jan-Abr
+// Forecast Mai-Dez = Orç Mai-Dez × fator (por linha)
+// Forecast Total   = Real Jan-Abr + Forecast Mai-Dez
+// Orç Total        = Orç Jan-Abr  + Orç Mai-Dez
+function renderForecastAjustado(rows, mesesReal, mesesOrc){
+  const lReal = mesesReal.length>0 ? `${NOM[parseInt(mesesReal[0])-1]}–${NOM[parseInt(mesesReal[mesesReal.length-1])-1]}` : 'Real';
+  const lOrc  = mesesOrc.length>0  ? `${NOM[parseInt(mesesOrc[0])-1]}–${NOM[parseInt(mesesOrc[mesesOrc.length-1])-1]}`  : 'Orç';
+
+  // ── Thead ──
+  const thead = document.getElementById('thead-ajustado');
+  thead.innerHTML=`
+    <colgroup>
+      <col style="width:310px">
+      <col style="width:90px">
+      <col style="width:90px">
+      <col style="width:72px">
+      <col style="width:90px">
+      <col style="width:90px">
+      <col style="width:90px">
+      <col style="width:90px">
+      <col style="width:72px">
+    </colgroup>
+    <tr class="gr1">
+      <th class="th-dre" rowspan="2">Linha DRE</th>
+      <th class="th-real">Real ${lReal}/26</th>
+      <th class="th-orc">Orç ${lReal}/26</th>
+      <th class="th-orc">AH%</th>
+      <th class="th-orc">Orç ${lOrc}/26</th>
+      <th class="th-total">Forecast ${lOrc}/26</th>
+      <th class="th-total">Forecast Total</th>
+      <th class="th-orig">Orç Total 2026</th>
+      <th class="th-orig">AH%</th>
+    </tr>
+    <tr class="gr2">
+      <th class="th-real">R$</th>
+      <th class="th-orc">R$</th>
+      <th class="th-orc">real/orç</th>
+      <th class="th-orc">R$</th>
+      <th class="th-total">R$</th>
+      <th class="th-total">R$</th>
+      <th class="th-orig">R$</th>
+      <th class="th-orig">fcst/orç</th>
+    </tr>`;
+
+  // ── Calcular ──
+  const rl_realP  = somaReal(rows,'Receita Líquida', mesesReal) || 1;
+  const rl_orcP   = somaOrc (rows,'Receita Líquida', mesesReal) || 1;
+  const rl_orcF   = somaOrc (rows,'Receita Líquida', mesesOrc)  || 1;
+  const rl_orcTot = rl_orcP + rl_orcF || 1;
+
+  const tbody = document.getElementById('tbody-ajustado');
+  tbody.innerHTML = LINHAS.map(item=>{
+    const realP  = somaReal(rows, item.linha, mesesReal);  // Real período fechado
+    const orcP   = somaOrc (rows, item.linha, mesesReal);  // Orç mesmo período
+    const orcF   = somaOrc (rows, item.linha, mesesOrc);   // Orç meses futuros
+
+    // Fator por linha: se orçado do período = 0, fator = 1 (sem ajuste)
+    const fator  = (orcP !== 0) ? realP / orcP : 1;
+
+    const fcstF  = orcF * fator;                  // Forecast meses futuros ajustado
+    const fcstTot= realP + fcstF;                 // Forecast total
+    const orcTot = orcP  + orcF;                  // Orçamento total anual
+
+    const ah1 = fmtAH(realP,  orcP);             // AH% real vs orç período
+    const ah2 = fmtAH(fcstTot, orcTot);          // AH% forecast total vs orç total
+
+    const neg = (v) => v < 0 ? 'neg' : '';
+
+    // AV% base = Receita Líquida de cada coluna
+    return `<tr class="${item.cls}">
+      <td>${item.linha}</td>
+      <td class="${neg(realP)}">${fmtN(realP)}</td>
+      <td class="${neg(orcP)}">${fmtN(orcP)}</td>
+      <td class="${ah1.cls}">${ah1.txt}</td>
+      <td class="${neg(orcF)}">${fmtN(orcF)}</td>
+      <td class="${neg(fcstF)}">${fmtN(fcstF)}</td>
+      <td class="${neg(fcstTot)}">${fmtN(fcstTot)}</td>
+      <td class="${neg(orcTot)}">${fmtN(orcTot)}</td>
+      <td class="${ah2.cls}">${ah2.txt}</td>
+    </tr>`;
+  }).join('');
 }
 
 init();
