@@ -92,6 +92,14 @@ td.ah-neg{color:#c62828!important;font-weight:600}
 td.ah-pos{color:#4CAF50!important;font-weight:600}
 td.zero{color:#aaa!important}
 
+/* AH% em linhas coloridas — sempre branco */
+tr.row-total td.ah-neg, tr.row-total td.ah-pos, tr.row-total td.zero,
+tr.row-subtotal td.ah-neg, tr.row-subtotal td.ah-pos, tr.row-subtotal td.zero,
+tr.row-highlight td.ah-neg, tr.row-highlight td.ah-pos,
+tr.row-receita-liq td.ah-neg, tr.row-receita-liq td.ah-pos,
+tr.row-grupo td.ah-neg, tr.row-grupo td.ah-pos { color:#fff!important }
+tr.row-highlight td.ah-neg, tr.row-highlight td.ah-pos { color:var(--v1)!important }
+
 /* COLLAPSE TOGGLE */
 .toggle-btn{
   display:inline-flex;align-items:center;justify-content:center;
@@ -430,6 +438,20 @@ function renderDRE() {
   let grupoAtual = null;
   let grupoIdx   = 0;
 
+  // Primeiro passo: contar filhos por grupo
+  const contaFilhos = {};
+  let gIdx = 0, gAtual = null;
+  DRE_ORDEM.forEach(item => {
+    const v26 = somaLinha(raw26, item.linha);
+    const v25 = somaLinha(raw25, item.linha);
+    if (v26.realizado===0 && v26.orcado===0 && v25.realizado===0) return;
+    const isParent = (item.nivel==='grupo' || item.nivel==='subgrupo');
+    const isConta  = (item.nivel==='conta');
+    if (isParent) { gIdx++; gAtual=`grp-${gIdx}`; contaFilhos[gAtual]=0; }
+    if (isConta && gAtual) contaFilhos[gAtual]++;
+  });
+  gIdx = 0; gAtual = null;
+
   DRE_ORDEM.forEach(item => {
     const v26 = somaLinha(raw26, item.linha);
     const v25 = somaLinha(raw25, item.linha);
@@ -466,19 +488,20 @@ function renderDRE() {
     // Se é linha de grupo/subtotal → tem botão toggle
     const isParent = (item.nivel==='grupo' || item.nivel==='subgrupo');
     if (isParent) {
-      grupoIdx++;
-      grupoAtual = `grp-${grupoIdx}`;
+      gIdx++;
+      gAtual = `grp-${gIdx}`;
     }
 
     // Se é conta analítica → pertence ao grupo atual
     const isConta = (item.nivel==='conta');
-    if (isConta && grupoAtual) {
-      tr.dataset.grupo = grupoAtual;
+    if (isConta && gAtual) {
+      tr.dataset.grupo = gAtual;
     }
 
-    // Botão toggle para linhas pai
-    const toggleHtml = isParent
-      ? `<span class="toggle-btn" onclick="toggleGrupo('grp-${grupoIdx}', this)">−</span>`
+    // Botão toggle só se o grupo tem mais de 1 filho
+    const temFilhos = isParent && (contaFilhos[`grp-${gIdx}`] > 1);
+    const toggleHtml = temFilhos
+      ? `<span class="toggle-btn" onclick="toggleGrupo('grp-${gIdx}', this)">−</span>`
       : '';
 
     tr.innerHTML = `
