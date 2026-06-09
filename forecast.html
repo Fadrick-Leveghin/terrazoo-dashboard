@@ -79,7 +79,7 @@ select:focus{outline:none;border-color:var(--v3)}
 
 /* TABLE */
 .tbl-outer{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px;table-layout:fixed}
 
 /* HEADER GROUPS — idêntico à DRE */
 thead tr.gr1 th{background:var(--v1);color:#fff;font-weight:600;font-size:11px;letter-spacing:.8px;text-transform:uppercase;padding:10px 8px;text-align:center;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap}
@@ -366,6 +366,14 @@ function renderForecast(){
   // ── Thead ──
   const thead=document.getElementById('thead-forecast');
   thead.innerHTML=`
+    <colgroup>
+      <col style="width:200px">
+      <col style="width:110px"><col style="width:70px">
+      <col style="width:110px"><col style="width:70px">
+      <col style="width:110px"><col style="width:70px">
+      <col style="width:110px"><col style="width:70px">
+      <col style="width:90px">
+    </colgroup>
     <tr class="gr1">
       <th class="th-dre" rowspan="2">Linha DRE</th>
       <th class="th-real" colspan="2">${lReal}/26 — Realizado</th>
