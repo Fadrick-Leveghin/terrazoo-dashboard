@@ -86,16 +86,12 @@ thead tr.gr1 th{background:var(--v1);color:#fff;font-weight:600;font-size:11px;l
 thead tr.gr2 th{background:#263a2b;color:rgba(255,255,255,.75);font-size:10px;font-weight:500;padding:6px 8px;text-align:right;border-right:1px solid rgba(255,255,255,.08);white-space:nowrap}
 thead tr.gr1 th:first-child,thead tr.gr2 th:first-child{text-align:left;padding-left:14px;min-width:220px}
 
-/* cores dos grupos de colunas */
-.th-real  thead tr.gr1 th, .gr1 .th-real {background:var(--col-real)!important}
-.th-orc   thead tr.gr1 th, .gr1 .th-orc  {background:var(--col-orc)!important}
-.th-total thead tr.gr1 th, .gr1 .th-total{background:var(--col-total)!important}
-.th-orig  thead tr.gr1 th, .gr1 .th-orig {background:var(--col-orig)!important}
+/* cada grupo de coluna herda cor no gr1 E gr2 */
+th.th-dre  {background:var(--v1)}
 th.th-real {background:var(--col-real)}
 th.th-orc  {background:var(--col-orc)}
 th.th-total{background:var(--col-total)}
 th.th-orig {background:var(--col-orig)}
-th.th-dre  {background:var(--v1)}
 
 /* BODY ROWS */
 tbody tr{border-bottom:1px solid #f0f5f0;transition:filter .1s}
@@ -178,12 +174,6 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
   <div class="tbl-wrap">
     <div class="tbl-header">
       <div class="tbl-title">DRE Forecast Anual 2026</div>
-      <div class="tbl-legend">
-        <div class="leg"><div class="leg-dot" style="background:var(--col-real)"></div>Realizado</div>
-        <div class="leg"><div class="leg-dot" style="background:var(--col-orc)"></div>Orçado restante</div>
-        <div class="leg"><div class="leg-dot" style="background:var(--col-total)"></div>Forecast Total</div>
-        <div class="leg"><div class="leg-dot" style="background:var(--col-orig)"></div>Orçado Original</div>
-      </div>
     </div>
     <div class="tbl-outer">
       <table id="tbl-forecast">
@@ -382,18 +372,14 @@ function renderForecast(){
       <th class="th-orc"  colspan="2">${lOrc}/26 — Orçado</th>
       <th class="th-total" colspan="2">Forecast Total 2026</th>
       <th class="th-orig" colspan="2">Orçado Original 2026</th>
-      <th class="th-orig" style="background:var(--col-orig)">AH%</th>
+      <th class="th-orig">AH%</th>
     </tr>
     <tr class="gr2">
-      <th class="th-real">R$</th>
-      <th class="th-real">AV%</th>
-      <th class="th-orc">R$</th>
-      <th class="th-orc">AV%</th>
-      <th class="th-total">R$</th>
-      <th class="th-total">AV%</th>
-      <th class="th-orig">R$</th>
-      <th class="th-orig">AV%</th>
-      <th style="background:var(--col-orig);color:rgba(255,255,255,.75);font-size:10px;font-weight:500;padding:6px 8px;text-align:right">Forecast vs Orç</th>
+      <th class="th-real">R$</th><th class="th-real">AV%</th>
+      <th class="th-orc">R$</th><th class="th-orc">AV%</th>
+      <th class="th-total">R$</th><th class="th-total">AV%</th>
+      <th class="th-orig">R$</th><th class="th-orig">AV%</th>
+      <th class="th-orig">Forecast vs Orç</th>
     </tr>`;
 
   // Bases AV%
