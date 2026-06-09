@@ -434,23 +434,65 @@ function renderDRE() {
   const rb26 = somaLinha(raw26,'Receita Bruta').realizado;
   const rb25 = somaLinha(raw25,'Receita Bruta').realizado;
 
-  // Controle de grupos para colapso
-  let grupoAtual = null;
-  let grupoIdx   = 0;
+  // Mapa explícito de hierarquia: pai → lista de cod_conta dos filhos
+  // Baseado na estrutura real do banco (cod_conta)
+  const HIERARQUIA = {
+    // Receita com Revenda de Mercadorias (100100) → filhos: 100101, 100103+
+    100100: r => r.cod >= 100101 && r.cod < 100400,
+    // Receita com Serviços (100400) → filhos: 100405+
+    100400: r => r.cod >= 100405 && r.cod < 100500,
+    // Ajuste Intercompany (100500) → filhos: 100512+
+    100500: r => r.cod >= 100501 && r.cod < 200000,
+    // Impostos S/Vendas (200000) → agrupa PIS, COFINS, ICMS, ISS, Ajuste Tributos
+    200000: r => r.cod >= 204000 && r.cod < 300000,
+    // CMV & CSP (400000) → Custo Merc, Ajuste Custo, Custo Serviços
+    400000: r => r.cod >= 414000 && r.cod < 500000,
+    // Demais Operações (600000) → Verbas Comerciais
+    600000: r => r.cod >= 617000 && r.cod < 700000,
+    // Gastos com Pessoal Comercial (1019000) → contas 1019xxx
+    1019000: r => r.cod >= 1019001 && r.cod < 1020000,
+    // Gastos com Pessoal SGA (1020000) → contas 1020xxx
+    1020000: r => r.cod >= 1020073 && r.cod < 1021000,
+    // Despesas Comerciais (1021000)
+    1021000: r => r.cod >= 1021096 && r.cod < 1022000,
+    // Despesas com Distribuição (1022000)
+    1022000: r => r.cod >= 1022145 && r.cod < 1023000,
+    // Despesas Administrativas (1023000)
+    1023000: r => r.cod >= 1023158 && r.cod < 1024000,
+    // Despesas Tributárias (1024000)
+    1024000: r => r.cod >= 1024198 && r.cod < 1025000,
+    // Aluguel (1025000)
+    1025000: r => r.cod >= 1025001 && r.cod < 1100000,
+    // Outras Receitas/Despesas Operacionais (1100000) → subgrupos + contas
+    1100000: r => r.cod >= 1126000 && r.cod < 1200000,
+    // Resultados Não Recorrentes (1300000)
+    1300000: r => r.cod >= 1302000 && r.cod < 1400000,
+    // D&A (1600000)
+    1600000: r => r.cod >= 1628000 && r.cod < 1700000,
+    // Despesas Pré Operacionais (1700000) → vai até EBIT
+    1700000: r => r.cod >= 1732000 && r.cod < 1800000,
+    // Receitas/Despesas Financeiras (1900000)
+    1900000: r => r.cod >= 1929000 && r.cod < 2100000,
+    // Despesas Financeiras (1929000)
+    1929000: r => r.cod >= 1929251 && r.cod < 1930000,
+    // Receitas Financeiras (1930000)
+    1930000: r => r.cod >= 1930291 && r.cod < 2000000,
+  };
 
-  // Primeiro passo: contar filhos por grupo
-  const contaFilhos = {};
-  let gIdx = 0, gAtual = null;
-  DRE_ORDEM.forEach(item => {
-    const v26 = somaLinha(raw26, item.linha);
-    const v25 = somaLinha(raw25, item.linha);
-    if (v26.realizado===0 && v26.orcado===0 && v25.realizado===0) return;
-    const isParent = (item.nivel==='grupo' || item.nivel==='subgrupo');
-    const isConta  = (item.nivel==='conta');
-    if (isParent) { gIdx++; gAtual=`grp-${gIdx}`; contaFilhos[gAtual]=0; }
-    if (isConta && gAtual) contaFilhos[gAtual]++;
+  // Construir lookup: cod_conta → grupoId
+  const codToGrupo = {};
+  const grupoHasChildren = {};
+  Object.keys(HIERARQUIA).forEach(paiCod => {
+    const gId = `grp-${paiCod}`;
+    let count = 0;
+    DRE_ORDEM.forEach(item => {
+      if (HIERARQUIA[paiCod]({cod: item.cod})) {
+        codToGrupo[item.cod] = gId;
+        count++;
+      }
+    });
+    grupoHasChildren[paiCod] = count > 1;
   });
-  gIdx = 0; gAtual = null;
 
   DRE_ORDEM.forEach(item => {
     const v26 = somaLinha(raw26, item.linha);
@@ -485,23 +527,18 @@ function renderDRE() {
       nomeExibido = item.linha.split('-').slice(1).join('-').trim();
     }
 
-    // Se é linha de grupo/subtotal → tem botão toggle
-    const isParent = (item.nivel==='grupo' || item.nivel==='subgrupo');
-    if (isParent) {
-      gIdx++;
-      gAtual = `grp-${gIdx}`;
-    }
+    // Determina se é pai e se tem filhos suficientes
+    const isPai    = HIERARQUIA.hasOwnProperty(item.cod);
+    const isFilho  = codToGrupo.hasOwnProperty(item.cod);
+    const temFilhos = isPai && grupoHasChildren[item.cod];
 
-    // Se é conta analítica → pertence ao grupo atual
-    const isConta = (item.nivel==='conta');
-    if (isConta && gAtual) {
-      tr.dataset.grupo = gAtual;
-    }
+    // Atribui grupo para colapso
+    if (isFilho) tr.dataset.grupo = codToGrupo[item.cod];
 
-    // Botão toggle só se o grupo tem mais de 1 filho
-    const temFilhos = isParent && (contaFilhos[`grp-${gIdx}`] > 1);
+    // Botão toggle só em pais com múltiplos filhos
+    const gId = `grp-${item.cod}`;
     const toggleHtml = temFilhos
-      ? `<span class="toggle-btn" onclick="toggleGrupo('grp-${gIdx}', this)">−</span>`
+      ? `<span class="toggle-btn" onclick="toggleGrupo('${gId}', this)">−</span>`
       : '';
 
     tr.innerHTML = `
