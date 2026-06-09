@@ -169,7 +169,7 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
     <div class="badge" id="badge-periodo"></div>
   </div>
 
-  <div class="kpis" id="kpi-area"></div>
+  <div class="kpis" id="kpi-area" style="grid-template-columns:repeat(5,1fr)"></div>
 
   <div class="tbl-wrap">
     <div class="tbl-header">
@@ -353,6 +353,8 @@ function renderForecast(){
   // ── KPIs ──
   const ah_rb=fmtAH(rb.total,rb.orig);
   const ah_eb=fmtAH(eb.total,eb.orig);
+  const sg=calc['SG&A'];
+  const ah_sg=fmtAH(sg.total,sg.orig);
   document.getElementById('kpi-area').innerHTML=`
     <div class="kpi">
       <div class="kpi-label">Receita Bruta Forecast</div>
@@ -368,6 +370,11 @@ function renderForecast(){
       <div class="kpi-label">Margem Bruta Forecast</div>
       <div class="kpi-value">${fmtM(mb.total)}</div>
       <div class="kpi-sub kpi-${mb.total>=0?'up':'dn'}">${fmtAV(mb.total,rl.total)} da RL</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">SG&A Forecast</div>
+      <div class="kpi-value">${fmtM(sg.total)}</div>
+      <div class="kpi-sub kpi-${ah_sg.cls==='ah-pos'?'dn':'up'}">${ah_sg.txt} vs Orçado Original</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">EBITDA Ajustado Forecast</div>
