@@ -92,6 +92,18 @@ td.ah-neg{color:#c62828!important;font-weight:600}
 td.ah-pos{color:#4CAF50!important;font-weight:600}
 td.zero{color:#aaa!important}
 
+/* COLLAPSE TOGGLE */
+.toggle-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:16px;height:16px;border-radius:3px;border:1px solid currentColor;
+  font-size:11px;font-weight:700;line-height:1;cursor:pointer;
+  margin-right:6px;flex-shrink:0;opacity:.7;
+  background:rgba(255,255,255,.15);transition:opacity .15s;
+  vertical-align:middle;
+}
+.toggle-btn:hover{opacity:1}
+tr.row-collapsed{display:none}
+
 /* FOOTER */
 footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;justify-content:space-between}
 .footer-logo{font-size:13px;font-weight:600;color:rgba(255,255,255,.4)}.footer-logo span{color:var(--v4)}
@@ -414,12 +426,15 @@ function renderDRE() {
   const rb26 = somaLinha(raw26,'Receita Bruta').realizado;
   const rb25 = somaLinha(raw25,'Receita Bruta').realizado;
 
+  // Controle de grupos para colapso
+  let grupoAtual = null;
+  let grupoIdx   = 0;
+
   DRE_ORDEM.forEach(item => {
     const v26 = somaLinha(raw26, item.linha);
     const v25 = somaLinha(raw25, item.linha);
     const r26 = v26.realizado, o26 = v26.orcado, r25 = v25.realizado;
 
-    // Pula linhas sem dados
     if (r26===0 && o26===0 && r25===0) return;
 
     const base26 = rl26_r || 1;
@@ -432,30 +447,42 @@ function renderDRE() {
     const part25 = rb25 ? r25/rb25 : 0;
     const ah_orc = o26 ? (r26-o26)/Math.abs(o26) : null;
     const ah_aa  = r25 ? (r26-r25)/Math.abs(r25) : null;
-
     const isDespesa = LINHAS_DESPESA.has(item.linha);
 
     const tr = document.createElement('tr');
-
-    // Determina classe da linha
     let cls = LINHAS_ESPECIAIS[item.linha] || NIVEL_CLASSE[item.nivel] || 'row-conta';
-    // Receita Bruta e subtotais de receita ficam como subtotal
     if (item.nivel==='grupo' && item.cod < 300000) cls='row-subtotal';
-
     tr.className = cls;
 
     const indent = NIVEL_INDENT[item.nivel] || '';
     const ahOrcClass = ah_orc!==null ? pctClass(ah_orc, isDespesa) : 'zero';
     const ahAAClass  = ah_aa!==null  ? pctClass(ah_aa,  isDespesa) : 'zero';
 
-    // Nome da linha — para contas analíticas mostra só a descrição após o "-"
     let nomeExibido = item.linha;
     if (item.nivel==='conta' && item.linha.includes('-')) {
       nomeExibido = item.linha.split('-').slice(1).join('-').trim();
     }
 
+    // Se é linha de grupo/subtotal → tem botão toggle
+    const isParent = (item.nivel==='grupo' || item.nivel==='subgrupo');
+    if (isParent) {
+      grupoIdx++;
+      grupoAtual = `grp-${grupoIdx}`;
+    }
+
+    // Se é conta analítica → pertence ao grupo atual
+    const isConta = (item.nivel==='conta');
+    if (isConta && grupoAtual) {
+      tr.dataset.grupo = grupoAtual;
+    }
+
+    // Botão toggle para linhas pai
+    const toggleHtml = isParent
+      ? `<span class="toggle-btn" onclick="toggleGrupo('grp-${grupoIdx}', this)">−</span>`
+      : '';
+
     tr.innerHTML = `
-      <td class="${indent}" title="${item.linha}">${nomeExibido}</td>
+      <td class="${indent}" title="${item.linha}">${toggleHtml}${nomeExibido}</td>
       <td class="col-2026">${fmt(r26)}</td>
       <td>${fmtPct(av26)}</td>
       <td class="col-2026-end">${fmtPct(part26)}</td>
@@ -468,6 +495,14 @@ function renderDRE() {
       <td class="${ahAAClass}">${ah_aa!==null?fmtAH(ah_aa):'-'}</td>`;
     tbody.appendChild(tr);
   });
+}
+
+// Toggle colapso/expansão
+function toggleGrupo(grupoId, btn) {
+  const rows = document.querySelectorAll(`tr[data-grupo="${grupoId}"]`);
+  const collapsed = btn.textContent === '+';
+  rows.forEach(r => r.classList.toggle('row-collapsed', !collapsed));
+  btn.textContent = collapsed ? '−' : '+';
 }
 
 // Export CSV
