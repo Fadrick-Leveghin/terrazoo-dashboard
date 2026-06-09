@@ -8,15 +8,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Calibri:wght@300;400;600&display=swap');
 :root{
   --v1:#1a2e1f;--v2:#2E7D32;--v3:#4CAF50;--v4:#A5D6A7;--v5:#b2dfc4;--v6:#E8F5E9;
-  --txt:#111;--muted:#555;--borda:#C8E6C9;
-  --red:#C62828;--amber:#E65100;
+  --txt:#111;--muted:#666;--borda:#C8E6C9;
+  --red:#C62828;--amber:#E65100;--green:#2E7D32;
+  --col-real:#1B5E20;--col-orc:#2E7D32;--col-total:#388E3C;--col-orig:#4CAF50;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Calibri','Segoe UI',sans-serif;background:#f8faf8;color:var(--txt);min-height:100vh}
+body{font-family:'Calibri','Segoe UI',sans-serif;background:#f5f8f5;color:var(--txt);min-height:100vh}
 
 header{background:var(--v1);height:64px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
 .logo{font-size:22px;font-weight:600;color:#fff}.logo span{color:var(--v4)}
-.header-right{display:flex;align-items:center;gap:12px}
+.header-right{display:flex;align-items:center;gap:10px}
 .btn-back{font-size:12px;color:var(--v4);background:none;border:1px solid rgba(165,214,167,.3);padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;text-decoration:none}
 .btn-export{font-size:12px;color:#fff;background:var(--v2);border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600}
 .btn-export:hover{background:var(--v3);color:var(--v1)}
@@ -26,9 +27,8 @@ header{background:var(--v1);height:64px;padding:0 32px;display:flex;align-items:
 @keyframes spin{to{transform:rotate(360deg)}}
 #error-box{display:none;max-width:500px;margin:80px auto;padding:32px;background:#fff3f3;border:1px solid #ffcdd2;border-radius:12px;text-align:center}
 .error-title{font-size:18px;font-weight:600;color:#c62828;margin-bottom:8px}
-.error-msg{font-size:13px;color:#666}
 
-main{max-width:1300px;margin:0 auto;padding:28px 20px 80px}
+main{max-width:1400px;margin:0 auto;padding:28px 20px 80px}
 
 /* FILTROS */
 .filtros-bar{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
@@ -41,58 +41,77 @@ select:focus{outline:none;border-color:var(--v3)}
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px}
 .page-title{font-size:22px;font-weight:600;color:var(--v1)}
 .page-sub{font-size:12px;color:var(--muted);margin-top:3px}
-.badge{background:var(--v5);color:var(--v1);font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;white-space:nowrap}
+.badge{background:var(--v5);color:var(--v1);font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px}
 
 /* KPI CARDS */
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
-.kpi{background:var(--v5);border-radius:10px;padding:16px 14px;position:relative;overflow:hidden}
-.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--v2)}
+.kpi{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:16px 14px;border-left:4px solid var(--v2)}
 .kpi-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--v2);margin-bottom:6px}
-.kpi-value{font-size:22px;font-weight:600;color:var(--v1);letter-spacing:-0.5px;line-height:1}
+.kpi-value{font-size:22px;font-weight:600;color:var(--v1);letter-spacing:-0.5px;line-height:1.1}
 .kpi-sub{font-size:11px;margin-top:5px;color:var(--muted)}
-.kpi-up{color:var(--v2);font-weight:600}
-.kpi-dn{color:var(--red);font-weight:600}
+.kpi-up{color:var(--green)!important;font-weight:600}
+.kpi-dn{color:var(--red)!important;font-weight:600}
 
-/* FORECAST TABLE */
+/* TABLE WRAP */
 .tbl-wrap{background:#fff;border:1px solid var(--borda);border-radius:10px;overflow:hidden;margin-bottom:24px}
-.tbl-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--borda)}
+.tbl-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--borda);background:#fff}
 .tbl-title{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--v2)}
-.tbl-legend{display:flex;align-items:center;gap:16px;font-size:11px;color:var(--muted)}
-.leg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px}
+.tbl-legend{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--muted)}
+.leg{display:flex;align-items:center;gap:5px}
+.leg-dot{width:10px;height:10px;border-radius:2px}
 
-table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{background:var(--v1);color:#fff;font-weight:600;font-size:10px;letter-spacing:.8px;text-transform:uppercase;padding:10px 12px;text-align:right;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap}
-thead th:first-child{text-align:left;padding-left:16px;min-width:200px}
-thead th.col-real{background:#1B5E20}
-thead th.col-orc{background:#2E7D32}
-thead th.col-total{background:#4CAF50;color:var(--v1)}
+/* TABLE */
+.tbl-outer{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
 
+/* HEADER GROUPS */
+thead tr.gr1 th{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:9px 10px;text-align:center;border-right:2px solid rgba(255,255,255,.2);white-space:nowrap;color:#fff}
+thead tr.gr2 th{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:7px 10px;text-align:right;border-right:1px solid rgba(255,255,255,.15);white-space:nowrap;color:rgba(255,255,255,.85)}
+thead tr.gr2 th:first-child{text-align:left;padding-left:16px;min-width:200px}
+
+.th-dre{background:var(--v1);border-right:2px solid rgba(255,255,255,.2)!important}
+.th-real{background:var(--col-real)}
+.th-orc{background:var(--col-orc)}
+.th-total{background:var(--col-total)}
+.th-orig{background:#558B2F}
+
+/* BODY ROWS */
 tbody tr{border-bottom:1px solid #f0f5f0}
-tbody tr:hover{background:#fafffe}
-tbody tr.row-total{background:var(--v1)!important}
-tbody tr.row-total td{color:#fff!important;font-weight:700}
-tbody tr.row-subtotal{background:var(--v2)!important}
-tbody tr.row-subtotal td{color:#fff!important;font-weight:600}
-tbody tr.row-highlight{background:var(--v5)!important}
-tbody tr.row-highlight td{font-weight:600;color:var(--v1)!important}
-tbody tr.row-group{background:var(--v6)!important}
-tbody tr.row-group td{font-weight:500}
+tbody tr:hover{background:#f8fdf8}
 
-td{padding:7px 12px;text-align:right;white-space:nowrap;border-right:1px solid #f0f5f0}
-td:first-child{text-align:left;padding-left:16px;border-right:1px solid #e0ebe0}
-td.col-real{background:rgba(27,94,32,0.04)}
-td.col-orc{background:rgba(46,125,50,0.06)}
-td.col-total{background:rgba(76,175,80,0.08);font-weight:600}
-td.neg{color:var(--red)!important}
-td.pos{color:var(--v2)!important}
-td.indent{padding-left:28px}
+td{padding:7px 10px;text-align:right;white-space:nowrap}
+td:first-child{text-align:left;padding-left:16px;border-right:2px solid var(--borda)}
+.sep-r{border-right:2px solid rgba(0,0,0,.06)!important}
+.sep-l{border-left:2px solid rgba(0,0,0,.06)!important}
+
+/* coluna colorida fundo leve */
+.bg-real{background:rgba(27,94,32,.04)}
+.bg-orc{background:rgba(46,125,50,.04)}
+.bg-total{background:rgba(56,142,60,.06)}
+.bg-orig{background:rgba(85,139,47,.05)}
+
+/* valores negativos */
+.neg{color:var(--red)!important}
 
 /* AV% */
-td.av{color:var(--muted);font-size:11px}
+.av{color:var(--muted);font-size:11px}
+
+/* AH% */
+.ah-pos{color:var(--green);font-weight:600}
+.ah-neg{color:var(--red);font-weight:600}
+.ah-nt{color:var(--muted)}
+
+/* ROW TYPES */
+tr.row-total td{background:var(--v1)!important;color:#fff!important;font-weight:700}
+tr.row-total td.ah-pos,tr.row-total td.ah-neg{color:#fff!important}
+tr.row-subtotal td{background:var(--v2)!important;color:#fff!important;font-weight:600}
+tr.row-highlight td{background:var(--v5)!important;color:var(--v1)!important;font-weight:600}
+tr.row-group td{background:var(--v6);color:var(--muted)}
 
 footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:40px}
 .footer-logo{font-size:13px;font-weight:600;color:rgba(255,255,255,.4)}.footer-logo span{color:var(--v4)}
 .footer-info{font-size:11px;color:rgba(255,255,255,.25);letter-spacing:1px}
+@media(max-width:700px){.kpis{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -100,7 +119,7 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
   <div class="logo">terra<span>ZOO</span></div>
   <div class="header-right">
     <span style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4)">Forecast 2026</span>
-    <button class="btn-export" onclick="exportarCSV()">⬇ Exportar CSV</button>
+    <button class="btn-export" onclick="exportarCSV()">⬇ Exportar</button>
     <a class="btn-back" href="index.html">← Voltar</a>
   </div>
 </header>
@@ -125,39 +144,34 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
       <span class="filtro-label">Loja</span>
       <select id="fLoja" onchange="renderForecast()"></select>
     </div>
-    <div class="filtro-sep"></div>
-    <span class="filtro-label">Mostrar AV%</span>
-    <select id="fAV" onchange="renderForecast()">
-      <option value="nao">Não</option>
-      <option value="sim">Sim</option>
-    </select>
   </div>
 
   <div class="page-header">
     <div>
       <div class="page-title">Forecast 2026</div>
-      <div class="page-sub" id="page-sub">TerraZoo · Consolidado</div>
+      <div class="page-sub" id="page-sub"></div>
     </div>
     <div class="badge" id="badge-periodo"></div>
   </div>
 
-  <!-- KPIs -->
   <div class="kpis" id="kpi-area"></div>
 
-  <!-- Tabela Forecast -->
   <div class="tbl-wrap">
     <div class="tbl-header">
       <div class="tbl-title">DRE Forecast Anual 2026</div>
       <div class="tbl-legend">
-        <span><span class="leg-dot" style="background:#1B5E20"></span>Realizado</span>
-        <span><span class="leg-dot" style="background:#2E7D32"></span>Orçado (meses restantes)</span>
-        <span><span class="leg-dot" style="background:#4CAF50"></span>Total Anual</span>
+        <div class="leg"><div class="leg-dot" style="background:var(--col-real)"></div>Realizado</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--col-orc)"></div>Orçado restante</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--col-total)"></div>Forecast Total</div>
+        <div class="leg"><div class="leg-dot" style="background:#558B2F"></div>Orçado Original</div>
       </div>
     </div>
-    <table id="tbl-forecast">
-      <thead id="thead-forecast"></thead>
-      <tbody id="tbody-forecast"></tbody>
-    </table>
+    <div class="tbl-outer">
+      <table id="tbl-forecast">
+        <thead id="thead-forecast"></thead>
+        <tbody id="tbody-forecast"></tbody>
+      </table>
+    </div>
   </div>
 
 </main>
@@ -169,84 +183,92 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbwbqZDvHDwuwWJkyyjgK3YJAi7JEBqLHAlbuJHh32V50FyFSTneJEmmRWrpW49Rw5by/exec?tipo=forecast';
-
 let DADOS = [], REGIOES = {};
 const NOM = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-const TODOS_MESES = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+const MESES_ANO = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 
-// Linhas da DRE na ordem correta
-const LINHAS_FORECAST = [
-  { linha:'Receita Bruta',        tipo:'subtotal', sinal:1  },
-  { linha:'Impostos S/ Vendas',   tipo:'grupo',    sinal:-1 },
-  { linha:'Receita Líquida',      tipo:'total',    sinal:1  },
-  { linha:'CMV & CSP',            tipo:'grupo',    sinal:-1 },
-  { linha:'Lucro Bruto Ajustado', tipo:'highlight',sinal:1  },
-  { linha:'SG&A',                 tipo:'grupo',    sinal:-1 },
-  { linha:'EBITDA',               tipo:'subtotal', sinal:1  },
-  { linha:'EBITDA Ajustado',      tipo:'total',    sinal:1  },
+const LINHAS = [
+  { linha:'Receita Bruta',                        cls:'row-subtotal', sinal:1  },
+  { linha:'Receita com Revenda de Mercadorias',   cls:'row-group',    sinal:1  },
+  { linha:'Receita com Serviços',                 cls:'row-group',    sinal:1  },
+  { linha:'Ajuste Intercompany',                  cls:'row-group',    sinal:-1 },
+  { linha:'Impostos S/ Vendas',                   cls:'row-group',    sinal:-1 },
+  { linha:'Receita Líquida',                      cls:'row-total',    sinal:1  },
+  { linha:'CMV & CSP',                            cls:'row-group',    sinal:-1 },
+  { linha:'Custo das Mercadorias Vendidas',       cls:'row-group',    sinal:-1 },
+  { linha:'Ajuste Custo Intercompany',            cls:'row-group',    sinal:-1 },
+  { linha:'Custo dos Serviços Prestados',         cls:'row-group',    sinal:-1 },
+  { linha:'Lucro Bruto',                          cls:'row-highlight',sinal:1  },
+  { linha:'Verbas Comerciais',                    cls:'row-group',    sinal:-1 },
+  { linha:'Lucro Bruto Ajustado',                 cls:'row-highlight',sinal:1  },
+  { linha:'SG&A',                                 cls:'row-subtotal', sinal:-1 },
+  { linha:'Comissões sobre Vendas',               cls:'row-group',    sinal:-1 },
+  { linha:'Gastos com Pessoal Comercial',         cls:'row-group',    sinal:-1 },
+  { linha:'Gastos com Pessoal - SG&A',            cls:'row-group',    sinal:-1 },
+  { linha:'Despesas Comerciais',                  cls:'row-group',    sinal:-1 },
+  { linha:'Despesas com Distribuição',            cls:'row-group',    sinal:-1 },
+  { linha:'Despesas Administrativas',             cls:'row-group',    sinal:-1 },
+  { linha:'Despesas Tributárias',                 cls:'row-group',    sinal:-1 },
+  { linha:'Aluguel',                              cls:'row-group',    sinal:-1 },
+  { linha:'Outras Receitas/Despesas Operacionais',cls:'row-group',    sinal:1  },
+  { linha:'EBITDA',                               cls:'row-total',    sinal:1  },
+  { linha:'Resultados Não Recorentes',            cls:'row-group',    sinal:1  },
+  { linha:'EBITDA Ajustado',                      cls:'row-total',    sinal:1  },
 ];
 
 // ── Helpers ──
+function fmtN(v){ return Math.round(Math.abs(v)).toLocaleString('pt-BR'); }
 function fmtM(v){
   const a=Math.abs(v);
-  let s;
-  if(a>=1e6) s='R$ '+(a/1e6).toFixed(2).replace('.',',')+'M';
-  else if(a>=1e3) s='R$ '+(a/1e3).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+'K';
-  else s='R$ '+Math.round(a).toLocaleString('pt-BR');
+  const s=a>=1e6?'R$ '+(a/1e6).toFixed(2).replace('.',',')+'M':
+          a>=1e3?'R$ '+(a/1e3).toFixed(0)+'K':'R$ '+Math.round(a).toLocaleString('pt-BR');
   return v<0?`(${s})`:s;
 }
-function fmtN(v){ return Math.round(Math.abs(v)).toLocaleString('pt-BR'); }
-function fmtP(v,base){ return base!==0?(v/base*100).toFixed(1).replace('.',',')+'%':'-'; }
+function fmtAV(v, base){ return base ? (v/base*100).toFixed(1).replace('.',',')+' %' : '-'; }
+function fmtAH(v, base){
+  if (!base || base===0) return {txt:'-', cls:'ah-nt'};
+  const pct = (v-base)/Math.abs(base)*100;
+  const txt = (pct>=0?'+':'')+pct.toFixed(1).replace('.',',')+' %';
+  return {txt, cls: pct>0?'ah-pos':pct<0?'ah-neg':'ah-nt'};
+}
 function fmtMes(s){ const p=s.split('-'); return NOM[parseInt(p[1])-1]+'/'+p[0].slice(2); }
 
-function filtrarDados(rows){
-  const visao = document.getElementById('fVisao').value;
-  if(visao==='regiao'){
-    const reg = document.getElementById('fRegiao').value;
-    return rows.filter(r=>REGIOES[r.loja]===reg);
-  }
-  if(visao==='loja'){
-    const lj = document.getElementById('fLoja').value;
-    return rows.filter(r=>r.loja===lj);
-  }
+function filtrar(rows){
+  const visao=document.getElementById('fVisao').value;
+  if(visao==='regiao') return rows.filter(r=>REGIOES[r.loja]===document.getElementById('fRegiao').value);
+  if(visao==='loja')   return rows.filter(r=>r.loja===document.getElementById('fLoja').value);
   return rows;
 }
 
-function somaLinha(rows, linha, ano, meses){
-  return rows
-    .filter(r=>r.linha_dre===linha && r.mes_ano.startsWith(ano) && meses.includes(r.mes_ano.slice(5,7)))
-    .reduce((s,r)=>s+r.realizado/100, 0);
+function somaReal(rows, linha, meses){
+  return rows.filter(r=>r.linha_dre===linha && meses.includes(r.mes_ano.slice(5,7)))
+    .reduce((s,r)=>s+r.realizado/100,0);
 }
-function somaOrcado(rows, linha, ano, meses){
-  return rows
-    .filter(r=>r.linha_dre===linha && r.mes_ano.startsWith(ano) && meses.includes(r.mes_ano.slice(5,7)))
-    .reduce((s,r)=>s+r.orcado/100, 0);
+function somaOrc(rows, linha, meses){
+  return rows.filter(r=>r.linha_dre===linha && meses.includes(r.mes_ano.slice(5,7)))
+    .reduce((s,r)=>s+r.orcado/100,0);
 }
 
 // ── Init ──
 async function init(){
   try{
-    const resp = await fetch(API_URL);
-    const data = await resp.json();
+    const resp=await fetch(API_URL);
+    const data=await resp.json();
     if(data.status!=='ok') throw new Error(data.message);
-
-    REGIOES = data.regioes || {};
-    DADOS = (data.rows||[]).map(r=>({
+    REGIOES=data.regioes||{};
+    DADOS=(data.rows||[]).map(r=>({
       mes_ano:   String(r.mes_ano||'').replace(/[^0-9\-]/g,'').slice(0,7),
       loja:      String(r.loja||''),
       linha_dre: String(r.linha_dre||'').trim(),
       realizado: Number(r.realizado||0),
       orcado:    Number(r.orcado||0),
     }));
-
-    // Popular filtros
-    const lojas = [...new Set(DADOS.map(r=>r.loja))].sort();
-    const grupos = [...new Set(Object.values(REGIOES))].sort();
-    const selL = document.getElementById('fLoja');
-    const selR = document.getElementById('fRegiao');
-    lojas.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; selL.appendChild(o); });
-    grupos.forEach(g=>{ const o=document.createElement('option'); o.value=g; o.textContent=g; selR.appendChild(o); });
-
+    const lojas=[...new Set(DADOS.map(r=>r.loja))].sort();
+    const grupos=[...new Set(Object.values(REGIOES))].sort();
+    const slL=document.getElementById('fLoja');
+    const slR=document.getElementById('fRegiao');
+    lojas.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;slL.appendChild(o);});
+    grupos.forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;slR.appendChild(o);});
     document.getElementById('loading').style.display='none';
     document.getElementById('main-content').style.display='block';
     renderForecast();
@@ -258,145 +280,141 @@ async function init(){
 }
 
 function onVisaoChange(){
-  const v = document.getElementById('fVisao').value;
-  document.getElementById('grpRegiao').style.display = v==='regiao'?'flex':'none';
-  document.getElementById('grpLoja').style.display   = v==='loja'  ?'flex':'none';
+  const v=document.getElementById('fVisao').value;
+  document.getElementById('grpRegiao').style.display=v==='regiao'?'flex':'none';
+  document.getElementById('grpLoja').style.display=v==='loja'?'flex':'none';
   renderForecast();
 }
 
 // ── Render ──
 function renderForecast(){
-  const visao = document.getElementById('fVisao').value;
-  const showAV = document.getElementById('fAV').value === 'sim';
-  const rows = filtrarDados(DADOS);
+  const visao=document.getElementById('fVisao').value;
+  const rows=filtrar(DADOS);
 
-  // Identificar meses realizados e orçados de 2026
-  const meses2026 = [...new Set(
-    DADOS.filter(r=>r.mes_ano.startsWith('2026')).map(r=>r.mes_ano.slice(5,7))
+  // Meses com realizado em 2026
+  const mesesReal=[...new Set(
+    DADOS.filter(r=>r.mes_ano.startsWith('2026')&&r.linha_dre==='Receita Bruta'&&r.realizado/100!==0)
+      .map(r=>r.mes_ano.slice(5,7))
   )].sort();
 
-  // Meses com realizado > 0 para Receita Bruta
-  const mesesReal = meses2026.filter(m=>{
-    const v = rows.filter(r=>r.linha_dre==='Receita Bruta'&&r.mes_ano===`2026-${m}`)
-      .reduce((s,r)=>s+r.realizado/100,0);
-    return v !== 0;
+  // Meses orçados = meses sem realizado
+  const mesesOrc=MESES_ANO.filter(m=>!mesesReal.includes(m));
+
+  // Todos os meses do ano (para orçado original)
+  const mesesTodos=MESES_ANO;
+
+  const nReal=mesesReal.length, nOrc=mesesOrc.length;
+  const lReal=nReal>0?`${NOM[parseInt(mesesReal[0])-1]}–${NOM[parseInt(mesesReal[nReal-1])-1]}`:'Real';
+  const lOrc =nOrc>0?`${NOM[parseInt(mesesOrc[0])-1]}–${NOM[parseInt(mesesOrc[nOrc-1])-1]}`:'Orç';
+
+  // Labels visão
+  const visaoLabel=visao==='consolidado'?'Consolidado':
+    visao==='regiao'?document.getElementById('fRegiao').value:
+    document.getElementById('fLoja').value;
+
+  document.getElementById('page-sub').textContent=`TerraZoo · ${visaoLabel} · ${nReal} meses realizados · ${nOrc} meses orçados`;
+  document.getElementById('badge-periodo').textContent=`2026 · ${nReal} real + ${nOrc} orç`;
+
+  // ── Calcular ──
+  const calc={};
+  LINHAS.forEach(item=>{
+    const real=somaReal(rows,item.linha,mesesReal);
+    const orc =somaOrc(rows,item.linha,mesesOrc);
+    const orig=somaOrc(rows,item.linha,mesesTodos);
+    calc[item.linha]={real, orc, total:real+orc, orig};
   });
 
-  // Meses restantes = todos meses do ano menos os realizados
-  const mesesOrc = TODOS_MESES.filter(m=>!mesesReal.includes(m));
-
-  const nReal = mesesReal.length;
-  const nOrc  = mesesOrc.length;
-
-  // Labels
-  const labelReal = mesesReal.length > 0
-    ? `${NOM[parseInt(mesesReal[0])-1]}–${NOM[parseInt(mesesReal[mesesReal.length-1])-1]} (Realizado)`
-    : 'Realizado';
-  const labelOrc = mesesOrc.length > 0
-    ? `${NOM[parseInt(mesesOrc[0])-1]}–${NOM[parseInt(mesesOrc[mesesOrc.length-1])-1]} (Orçado)`
-    : 'Orçado';
-
-  // Visão label
-  const visaoLabel = visao==='consolidado' ? 'Consolidado'
-    : visao==='regiao' ? document.getElementById('fRegiao').value
-    : document.getElementById('fLoja').value;
-
-  document.getElementById('page-sub').textContent = `TerraZoo · ${visaoLabel} · ${nReal} meses realizados · ${nOrc} meses orçados`;
-  document.getElementById('badge-periodo').textContent = `2026 · ${nReal} real + ${nOrc} orç`;
-
-  // ── Calcular valores ──
-  const calc = {};
-  LINHAS_FORECAST.forEach(item=>{
-    const real = somaLinha(rows, item.linha, '2026', mesesReal);
-    const orc  = somaOrcado(rows, item.linha, '2026', mesesOrc);
-    const total = real + orc;
-    calc[item.linha] = { real, orc, total };
-  });
+  const rl=calc['Receita Líquida'];
+  const rb=calc['Receita Bruta'];
+  const mb=calc['Lucro Bruto Ajustado'];
+  const eb=calc['EBITDA Ajustado'];
 
   // ── KPIs ──
-  const rb   = calc['Receita Bruta'];
-  const rl   = calc['Receita Líquida'];
-  const mb   = calc['Lucro Bruto Ajustado'];
-  const eb   = calc['EBITDA Ajustado'];
-
-  document.getElementById('kpi-area').innerHTML = `
+  const ah_rb=fmtAH(rb.total,rb.orig);
+  const ah_eb=fmtAH(eb.total,eb.orig);
+  document.getElementById('kpi-area').innerHTML=`
     <div class="kpi">
-      <div class="kpi-label">Receita Bruta Anual</div>
+      <div class="kpi-label">Receita Bruta Forecast</div>
       <div class="kpi-value">${fmtM(rb.total)}</div>
-      <div class="kpi-sub">Real ${fmtM(rb.real)} + Orç ${fmtM(rb.orc)}</div>
+      <div class="kpi-sub">Real ${fmtM(rb.real)} · Orç ${fmtM(rb.orc)}</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Receita Líquida Anual</div>
+      <div class="kpi-label">Receita Líquida Forecast</div>
       <div class="kpi-value">${fmtM(rl.total)}</div>
-      <div class="kpi-sub">AV% ${fmtP(rl.total,rb.total)} da RB</div>
+      <div class="kpi-sub">AV% ${fmtAV(rl.total,rb.total)} da RB</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Margem Bruta Anual</div>
+      <div class="kpi-label">Margem Bruta Forecast</div>
       <div class="kpi-value">${fmtM(mb.total)}</div>
-      <div class="kpi-sub kpi-${mb.total>=0?'up':'dn'}">${fmtP(mb.total,rl.total)} da RL</div>
+      <div class="kpi-sub kpi-${mb.total>=0?'up':'dn'}">${fmtAV(mb.total,rl.total)} da RL</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">EBITDA Ajustado Anual</div>
+      <div class="kpi-label">EBITDA Ajustado Forecast</div>
       <div class="kpi-value">${fmtM(eb.total)}</div>
-      <div class="kpi-sub kpi-${eb.total>=0?'up':'dn'}">${fmtP(eb.total,rl.total)} da RL</div>
+      <div class="kpi-sub kpi-${ah_eb.cls==='ah-pos'?'up':'dn'}">${ah_eb.txt} vs Orçado Original</div>
     </div>`;
 
-  // ── Tabela ──
-  const thead = document.getElementById('thead-forecast');
-  const tbody = document.getElementById('tbody-forecast');
+  // ── Thead ──
+  const thead=document.getElementById('thead-forecast');
+  thead.innerHTML=`
+    <tr class="gr1">
+      <th class="th-dre" rowspan="2">Linha DRE</th>
+      <th class="th-real" colspan="2">${lReal}/26 — Realizado</th>
+      <th class="th-orc"  colspan="2">${lOrc}/26 — Orçado</th>
+      <th class="th-total" colspan="2">Forecast Total 2026</th>
+      <th class="th-orig" colspan="2">Orçado Original 2026</th>
+      <th class="th-orig" style="background:#33691E">AH%</th>
+    </tr>
+    <tr class="gr2">
+      <th class="th-real">R$</th>
+      <th class="th-real">AV%</th>
+      <th class="th-orc">R$</th>
+      <th class="th-orc">AV%</th>
+      <th class="th-total">R$</th>
+      <th class="th-total">AV%</th>
+      <th class="th-orig">R$</th>
+      <th class="th-orig">AV%</th>
+      <th style="background:#33691E;color:rgba(255,255,255,.85);font-size:10px;padding:7px 10px;text-align:right">Forecast vs Orç</th>
+    </tr>`;
 
-  const avCols = showAV ? `<th class="col-real">AV%</th><th class="col-orc">AV%</th><th class="col-total">AV%</th>` : '';
-  thead.innerHTML = `<tr>
-    <th>Linha DRE</th>
-    <th class="col-real">${labelReal}</th>
-    <th class="col-orc">${labelOrc}</th>
-    <th class="col-total">Total 2026</th>
-    ${avCols}
-  </tr>`;
+  // Bases AV%
+  const rl_real =calc['Receita Líquida'].real  ||1;
+  const rl_orc  =calc['Receita Líquida'].orc   ||1;
+  const rl_total=calc['Receita Líquida'].total  ||1;
+  const rl_orig =calc['Receita Líquida'].orig   ||1;
 
-  const rl_real  = calc['Receita Líquida'].real  || 1;
-  const rl_orc   = calc['Receita Líquida'].orc   || 1;
-  const rl_total = calc['Receita Líquida'].total  || 1;
-
-  tbody.innerHTML = LINHAS_FORECAST.map(item=>{
-    const v = calc[item.linha];
-    const sinal = item.sinal;
-    const real_d  = v.real  * sinal;
-    const orc_d   = v.orc   * sinal;
-    const total_d = v.total * sinal;
-    const neg_r = real_d  < 0;
-    const neg_o = orc_d   < 0;
-    const neg_t = total_d < 0;
-
-    const clsTR = item.tipo==='total'?'row-total':item.tipo==='subtotal'?'row-subtotal':item.tipo==='highlight'?'row-highlight':'row-group';
-
-    const avCells = showAV ? `
-      <td class="col-real av">${fmtP(v.real, rl_real)}</td>
-      <td class="col-orc av">${fmtP(v.orc, rl_orc)}</td>
-      <td class="col-total av">${fmtP(v.total, rl_total)}</td>` : '';
-
-    return `<tr class="${clsTR}">
+  // ── Tbody ──
+  const tbody=document.getElementById('tbody-forecast');
+  tbody.innerHTML=LINHAS.map(item=>{
+    const v=calc[item.linha];
+    const neg_r=v.real<0, neg_o=v.orc<0, neg_t=v.total<0, neg_g=v.orig<0;
+    const av_r=fmtAV(v.real, rl_real);
+    const av_o=fmtAV(v.orc,  rl_orc);
+    const av_t=fmtAV(v.total,rl_total);
+    const av_g=fmtAV(v.orig, rl_orig);
+    const ah=fmtAH(v.total,v.orig);
+    return `<tr class="${item.cls}">
       <td>${item.linha}</td>
-      <td class="col-real ${neg_r?'neg':''}">${fmtN(v.real)}</td>
-      <td class="col-orc ${neg_o?'neg':''}">${fmtN(v.orc)}</td>
-      <td class="col-total ${neg_t?'neg':''}">${fmtN(v.total)}</td>
-      ${avCells}
+      <td class="${neg_r?'neg':''}">${fmtN(v.real)}</td>
+      <td class="av">${av_r}</td>
+      <td class="${neg_o?'neg':''}">${fmtN(v.orc)}</td>
+      <td class="av">${av_o}</td>
+      <td class="${neg_t?'neg':''}">${fmtN(v.total)}</td>
+      <td class="av">${av_t}</td>
+      <td class="${neg_g?'neg':''}">${fmtN(v.orig)}</td>
+      <td class="av">${av_g}</td>
+      <td class="${ah.cls}">${ah.txt}</td>
     </tr>`;
   }).join('');
 }
 
-// ── Export CSV ──
 function exportarCSV(){
-  const rows = [...document.querySelectorAll('#tbody-forecast tr')];
-  const header = [...document.querySelectorAll('#thead-forecast th')].map(th=>th.textContent).join(';');
-  const lines = [header];
-  rows.forEach(tr=>{
-    lines.push([...tr.querySelectorAll('td')].map(td=>td.textContent.trim()).join(';'));
-  });
-  const csv = '\uFEFF'+lines.join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download = `TerraZoo_Forecast_2026_${new Date().toISOString().slice(0,10)}.csv`;
+  const rows=[...document.querySelectorAll('#tbody-forecast tr')];
+  const hdr=[...document.querySelectorAll('#thead-forecast th')].map(t=>t.textContent.trim()).join(';');
+  const lines=[hdr,...rows.map(tr=>[...tr.querySelectorAll('td')].map(td=>td.textContent.trim()).join(';'))];
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'}));
+  a.download=`TerraZoo_Forecast_2026_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
 }
 
