@@ -449,6 +449,8 @@ function renderDRE() {
     400000: r => r.cod >= 414000 && r.cod < 500000,
     // Demais Operações (600000) → Verbas Comerciais
     600000: r => r.cod >= 617000 && r.cod < 700000,
+    // Comissões sobre Vendas (1018000) → 1018050, 1018051
+    1018000: r => r.cod >= 1018050 && r.cod < 1019000,
     // Gastos com Pessoal Comercial (1019000) → contas 1019xxx
     1019000: r => r.cod >= 1019001 && r.cod < 1020000,
     // Gastos com Pessoal SGA (1020000) → contas 1020xxx
@@ -461,8 +463,8 @@ function renderDRE() {
     1023000: r => r.cod >= 1023158 && r.cod < 1024000,
     // Despesas Tributárias (1024000)
     1024000: r => r.cod >= 1024198 && r.cod < 1025000,
-    // Aluguel (1025000)
-    1025000: r => r.cod >= 1025001 && r.cod < 1100000,
+    // Aluguel (1025000) — múltiplas contas em lojas diferentes
+    1025000: r => r.cod >= 1025001 && r.cod < 1026000,
     // Outras Receitas/Despesas Operacionais (1100000) → subgrupos + contas
     1100000: r => r.cod >= 1126000 && r.cod < 1200000,
     // Resultados Não Recorrentes (1300000)
@@ -491,7 +493,7 @@ function renderDRE() {
         count++;
       }
     });
-    grupoHasChildren[paiCod] = count > 1;
+    grupoHasChildren[paiCod] = count >= 1;
   });
 
   DRE_ORDEM.forEach(item => {
