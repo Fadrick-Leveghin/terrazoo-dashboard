@@ -186,6 +186,7 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
     <div class="tbl-header">
       <div class="tbl-title">Forecast Ajustado 2026 — Tendência por Linha</div>
     </div>
+    <div class="kpis" id="kpi-ajustado" style="padding:16px 16px 0;grid-template-columns:repeat(5,1fr)"></div>
     <div class="tbl-outer">
       <table id="tbl-ajustado">
         <thead id="thead-ajustado"></thead>
@@ -490,31 +491,72 @@ function renderForecastAjustado(rows, mesesReal, mesesOrc){
       <th class="th-orig">fcst/orç</th>
     </tr>`;
 
-  // ── Calcular ──
-  const rl_realP  = somaReal(rows,'Receita Líquida', mesesReal) || 1;
-  const rl_orcP   = somaOrc (rows,'Receita Líquida', mesesReal) || 1;
-  const rl_orcF   = somaOrc (rows,'Receita Líquida', mesesOrc)  || 1;
-  const rl_orcTot = rl_orcP + rl_orcF || 1;
+  // ── Calcular todas as linhas ──
+  const calcAdj = {};
+  LINHAS.forEach(item => {
+    const realP = somaReal(rows, item.linha, mesesReal);
+    const orcP  = somaOrc (rows, item.linha, mesesReal);
+    const orcF  = somaOrc (rows, item.linha, mesesOrc);
+    const fator = (orcP !== 0) ? realP / orcP : 1;
+    const fcstF  = orcF * fator;
+    const fcstTot= realP + fcstF;
+    const orcTot = orcP  + orcF;
+    calcAdj[item.linha] = { realP, orcP, orcF, fator, fcstF, fcstTot, orcTot };
+  });
+
+  // ── KPIs ──
+  const aRB  = calcAdj['Receita Bruta'];
+  const aRL  = calcAdj['Receita Líquida'];
+  const aMB  = calcAdj['Lucro Bruto Ajustado'];
+  const aSGA = calcAdj['SG&A'];
+  const aEB  = calcAdj['EBITDA Ajustado'];
+
+  const ah_rb_adj  = fmtAH(aRB.fcstTot,  aRB.orcTot);
+  const ah_eb_adj  = fmtAH(aEB.fcstTot,  aEB.orcTot);
+  const ah_sga_adj = fmtAH(aSGA.fcstTot, aSGA.orcTot);
+
+  document.getElementById('kpi-ajustado').innerHTML=`
+    <div class="kpi">
+      <div class="kpi-label">Receita Bruta — Fcst Ajustado</div>
+      <div class="kpi-value">${fmtM(aRB.fcstTot)}</div>
+      <div class="kpi-sub kpi-${ah_rb_adj.cls==='ah-pos'?'up':'dn'}">${ah_rb_adj.txt} vs Orç Total</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Receita Líquida — Fcst Ajustado</div>
+      <div class="kpi-value">${fmtM(aRL.fcstTot)}</div>
+      <div class="kpi-sub">AV% ${fmtAV(aRL.fcstTot, aRB.fcstTot)} da RB</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Margem Bruta Ajustada — Fcst</div>
+      <div class="kpi-value">${fmtM(aMB.fcstTot)}</div>
+      <div class="kpi-sub kpi-${aMB.fcstTot>=0?'up':'dn'}">${fmtAV(aMB.fcstTot, aRL.fcstTot)} da RL</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">SG&A — Fcst Ajustado</div>
+      <div class="kpi-value">${fmtM(aSGA.fcstTot)}</div>
+      <div class="kpi-sub kpi-${ah_sga_adj.cls==='ah-pos'?'dn':'up'}">${ah_sga_adj.txt} vs Orç Total</div>
+    </div>
+    <div class="kpi" style="grid-column:span 1">
+      <div class="kpi-label">EBITDA Ajustado — Fcst</div>
+      <div class="kpi-value">${fmtM(aEB.fcstTot)}</div>
+      <div class="kpi-sub kpi-${ah_eb_adj.cls==='ah-pos'?'up':'dn'}">${ah_eb_adj.txt} vs Orç Total</div>
+    </div>`;
+
+  const rl_realP  = calcAdj['Receita Líquida'].realP || 1;
+  const rl_orcP   = calcAdj['Receita Líquida'].orcP  || 1;
+  const rl_orcF   = calcAdj['Receita Líquida'].orcF  || 1;
+  const rl_fcstTot= calcAdj['Receita Líquida'].fcstTot|| 1;
+  const rl_orcTot = calcAdj['Receita Líquida'].orcTot || 1;
 
   const tbody = document.getElementById('tbody-ajustado');
   tbody.innerHTML = LINHAS.map(item=>{
-    const realP  = somaReal(rows, item.linha, mesesReal);  // Real período fechado
-    const orcP   = somaOrc (rows, item.linha, mesesReal);  // Orç mesmo período
-    const orcF   = somaOrc (rows, item.linha, mesesOrc);   // Orç meses futuros
+    const v = calcAdj[item.linha];
+    const {realP, orcP, orcF, fcstF, fcstTot, orcTot} = v;
 
-    // Fator por linha: se orçado do período = 0, fator = 1 (sem ajuste)
-    const fator  = (orcP !== 0) ? realP / orcP : 1;
+    const ah1 = fmtAH(realP,   orcP);
+    const ah2 = fmtAH(fcstTot, orcTot);
+    const neg = (x) => x < 0 ? 'neg' : '';
 
-    const fcstF  = orcF * fator;                  // Forecast meses futuros ajustado
-    const fcstTot= realP + fcstF;                 // Forecast total
-    const orcTot = orcP  + orcF;                  // Orçamento total anual
-
-    const ah1 = fmtAH(realP,  orcP);             // AH% real vs orç período
-    const ah2 = fmtAH(fcstTot, orcTot);          // AH% forecast total vs orç total
-
-    const neg = (v) => v < 0 ? 'neg' : '';
-
-    // AV% base = Receita Líquida de cada coluna
     return `<tr class="${item.cls}">
       <td>${item.linha}</td>
       <td class="${neg(realP)}">${fmtN(realP)}</td>
