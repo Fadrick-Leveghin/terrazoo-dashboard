@@ -6,54 +6,62 @@
 <title>TerraZoo — Forecast 2026</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Calibri:wght@300;400;600&display=swap');
-:root{
-  /* Paleta oficial TerraZoo */
-  --v1:#206A47;        /* verde escuro principal */
-  --v2:#5BCD97;        /* verde médio */
-  --v3:#81D9AF;        /* verde claro */
-  --v4:#81D9AF;        /* verde claro (acentos) */
-  --v5:#d6f3e7;        /* verde muito claro (fundo highlight) */
-  --v6:#f0faf5;        /* verde quase branco (fundo row-group) */
-  --txt:#111;--muted:#666;--borda:#c6e8d8;
-  --red:#9C0006;--amber:#FFC000;--green:#206A47;
-  --col-real:#155235;  /* realizado — verde escuro sólido */
-  --col-orc:#206A47;   /* orçado restante — verde principal */
-  --col-total:#2a8a5c; /* forecast total — verde médio-escuro */
-  --col-orig:#3aab74;  /* orçado original — verde médio */
+:root {
+  --v1:#1a2e1f; --v2:#2E7D32; --v3:#4CAF50; --v4:#A5D6A7; --v5:#b2dfc4; --v6:#E8F5E9;
+  --txt:#111; --muted:#555; --borda:#C8E6C9; --fundo:#fff;
+  --red:#9C0006; --amber:#FFC000; --green:#2E7D32;
+  /* colunas forecast */
+  --col-real:#1a2e1f;
+  --col-orc:#2E7D32;
+  --col-total:#388E3C;
+  --col-orig:#558B2F;
+  /* row types — idêntico à DRE */
+  --row-total:#1a2e1f;       --row-total-txt:#fff;
+  --row-subtotal:#2E7D32;    --row-subtotal-txt:#fff;
+  --row-grupo:#E8F5E9;       --row-grupo-txt:#1a2e1f;
+  --row-highlight:#b2dfc4;   --row-highlight-txt:#1a2e1f;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Calibri','Segoe UI',sans-serif;background:#f2faf6;color:var(--txt);min-height:100vh}
+body{font-family:'Calibri','Segoe UI',sans-serif;background:var(--fundo);color:var(--txt);min-height:100vh;font-size:13px}
 
+/* HEADER */
 header{background:var(--v1);height:64px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
 .logo{font-size:22px;font-weight:600;color:#fff}.logo span{color:var(--v4)}
-.header-right{display:flex;align-items:center;gap:10px}
-.btn-back{font-size:12px;color:var(--v4);background:none;border:1px solid rgba(165,214,167,.3);padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;text-decoration:none}
-.btn-export{font-size:12px;color:#fff;background:var(--v2);border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600}
+.header-right{display:flex;align-items:center;gap:12px}
+.btn-back{font-size:12px;color:var(--v4);background:none;border:1px solid rgba(165,214,167,.3);padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .2s}
+.btn-back:hover{background:rgba(165,214,167,.1)}
+.btn-export{font-size:12px;color:#fff;background:var(--v2);border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;transition:background .2s}
 .btn-export:hover{background:var(--v3);color:var(--v1)}
 
+/* LOADING */
 #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px}
 .spinner{width:36px;height:36px;border:3px solid var(--borda);border-top-color:var(--v2);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ERROR */
 #error-box{display:none;max-width:500px;margin:80px auto;padding:32px;background:#fff3f3;border:1px solid #ffcdd2;border-radius:12px;text-align:center}
 .error-title{font-size:18px;font-weight:600;color:var(--red);margin-bottom:8px}
+.error-msg{font-size:13px;color:#666;line-height:1.6}
 
-main{max-width:1400px;margin:0 auto;padding:28px 20px 80px}
+/* MAIN */
+main{max-width:1400px;margin:0 auto;padding:24px 20px 60px}
 
 /* FILTROS */
-.filtros-bar{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.filtros-bar{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.filtro-group{display:flex;align-items:center;gap:8px}
 .filtro-label{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
-select{background:var(--v6);border:1px solid var(--borda);color:var(--txt);font-size:12px;padding:6px 10px;border-radius:7px;font-family:inherit;cursor:pointer}
+select{background:var(--v6);border:1px solid var(--borda);color:var(--txt);font-size:12px;padding:6px 10px;border-radius:7px;font-family:inherit;cursor:pointer;transition:border-color .2s}
 select:focus{outline:none;border-color:var(--v3)}
 .filtro-sep{width:1px;height:28px;background:var(--borda)}
 
 /* PAGE HEADER */
-.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
 .page-title{font-size:22px;font-weight:600;color:var(--v1)}
 .page-sub{font-size:12px;color:var(--muted);margin-top:3px}
-.badge{background:var(--v5);color:var(--v1);font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px}
+.badge{background:var(--v5);color:var(--v1);font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:.5px;white-space:nowrap}
 
 /* KPI CARDS */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
 .kpi{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:16px 14px;border-left:4px solid var(--v2)}
 .kpi-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--v2);margin-bottom:6px}
 .kpi-value{font-size:22px;font-weight:600;color:var(--v1);letter-spacing:-0.5px;line-height:1.1}
@@ -62,7 +70,7 @@ select:focus{outline:none;border-color:var(--v3)}
 .kpi-dn{color:var(--red)!important;font-weight:600}
 
 /* TABLE WRAP */
-.tbl-wrap{background:#fff;border:1px solid var(--borda);border-radius:10px;overflow:hidden;margin-bottom:24px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--borda);border-radius:10px;background:#fff;margin-bottom:20px}
 .tbl-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--borda);background:#fff}
 .tbl-title{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--v2)}
 .tbl-legend{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--muted)}
@@ -73,50 +81,52 @@ select:focus{outline:none;border-color:var(--v3)}
 .tbl-outer{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
 
-/* HEADER GROUPS */
-thead tr.gr1 th{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:9px 10px;text-align:center;border-right:2px solid rgba(255,255,255,.2);white-space:nowrap;color:#fff}
-thead tr.gr2 th{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:7px 10px;text-align:right;border-right:1px solid rgba(255,255,255,.15);white-space:nowrap;color:rgba(255,255,255,.85)}
-thead tr.gr2 th:first-child{text-align:left;padding-left:16px;min-width:200px}
+/* HEADER GROUPS — idêntico à DRE */
+thead tr.gr1 th{background:var(--v1);color:#fff;font-weight:600;font-size:11px;letter-spacing:.8px;text-transform:uppercase;padding:10px 8px;text-align:center;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap}
+thead tr.gr2 th{background:#263a2b;color:rgba(255,255,255,.75);font-size:10px;font-weight:500;padding:6px 8px;text-align:right;border-right:1px solid rgba(255,255,255,.08);white-space:nowrap}
+thead tr.gr1 th:first-child,thead tr.gr2 th:first-child{text-align:left;padding-left:14px;min-width:220px}
 
-.th-dre{background:var(--v1);border-right:2px solid rgba(255,255,255,.2)!important}
-.th-real{background:var(--col-real)}
-.th-orc{background:var(--col-orc)}
-.th-total{background:var(--col-total)}
-.th-orig{background:var(--col-orig)}
+/* cores dos grupos de colunas */
+.th-real  thead tr.gr1 th, .gr1 .th-real {background:var(--col-real)!important}
+.th-orc   thead tr.gr1 th, .gr1 .th-orc  {background:var(--col-orc)!important}
+.th-total thead tr.gr1 th, .gr1 .th-total{background:var(--col-total)!important}
+.th-orig  thead tr.gr1 th, .gr1 .th-orig {background:var(--col-orig)!important}
+th.th-real {background:var(--col-real)}
+th.th-orc  {background:var(--col-orc)}
+th.th-total{background:var(--col-total)}
+th.th-orig {background:var(--col-orig)}
+th.th-dre  {background:var(--v1)}
 
 /* BODY ROWS */
-tbody tr{border-bottom:1px solid var(--borda)}
-tbody tr:hover{background:var(--v6)}
+tbody tr{border-bottom:1px solid #f0f5f0;transition:filter .1s}
+tbody tr:hover{filter:brightness(.96)}
 
-td{padding:7px 10px;text-align:right;white-space:nowrap}
-td:first-child{text-align:left;padding-left:16px;border-right:2px solid var(--borda)}
+td{padding:5px 8px;text-align:right;white-space:nowrap;border-right:1px solid #f0f5f0}
+td:first-child{text-align:left;padding-left:14px;border-right:1px solid #e0ebe0;min-width:220px}
 .sep-r{border-right:2px solid rgba(0,0,0,.06)!important}
-.sep-l{border-left:2px solid rgba(0,0,0,.06)!important}
 
-/* coluna colorida fundo leve */
-.bg-real{background:rgba(32,106,71,.04)}
-.bg-orc{background:rgba(91,205,151,.05)}
-.bg-total{background:rgba(42,138,92,.06)}
-.bg-orig{background:rgba(58,171,116,.05)}
+/* fundo leve colunas */
+.bg-real {background:rgba(26,46,31,.03)}
+.bg-orc  {background:rgba(46,125,50,.03)}
+.bg-total{background:rgba(56,142,60,.05)}
+.bg-orig {background:rgba(85,139,47,.04)}
 
-/* valores negativos */
+/* valores */
 .neg{color:var(--red)!important}
-
-/* AV% */
 .av{color:var(--muted);font-size:11px}
-
-/* AH% */
 .ah-pos{color:var(--green);font-weight:600}
 .ah-neg{color:var(--red);font-weight:600}
 .ah-nt{color:var(--muted)}
 
-/* ROW TYPES */
-tr.row-total td{background:var(--v1)!important;color:#fff!important;font-weight:700}
-tr.row-total td.ah-pos,tr.row-total td.ah-neg{color:#fff!important}
-tr.row-subtotal td{background:var(--v2)!important;color:#fff!important;font-weight:600}
-tr.row-highlight td{background:var(--v5)!important;color:var(--v1)!important;font-weight:600}
-tr.row-group td{background:var(--v6);color:var(--muted)}
+/* ROW TYPES — idêntico à DRE */
+tr.row-total     td{background:var(--row-total)!important;    color:var(--row-total-txt)!important;    font-weight:700;font-size:12px}
+tr.row-subtotal  td{background:var(--row-subtotal)!important; color:var(--row-subtotal-txt)!important; font-weight:600}
+tr.row-highlight td{background:var(--row-highlight)!important;color:var(--row-highlight-txt)!important;font-weight:600}
+tr.row-group     td{background:var(--row-grupo);color:var(--row-grupo-txt);font-weight:500}
+tr.row-total    td.ah-pos,tr.row-total    td.ah-neg{color:#fff!important}
+tr.row-subtotal td.ah-pos,tr.row-subtotal td.ah-neg{color:#fff!important}
 
+/* FOOTER */
 footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:40px}
 .footer-logo{font-size:13px;font-weight:600;color:rgba(255,255,255,.4)}.footer-logo span{color:var(--v4)}
 .footer-info{font-size:11px;color:rgba(255,255,255,.25);letter-spacing:1px}
@@ -250,11 +260,11 @@ function filtrar(rows){
 }
 
 function somaReal(rows, linha, meses){
-  return rows.filter(r=>r.linha_dre===linha && r.mes_ano.startsWith('2026') && meses.includes(r.mes_ano.slice(5,7)))
+  return rows.filter(r=>r.linha_dre===linha && meses.includes(r.mes_ano.slice(5,7)))
     .reduce((s,r)=>s+r.realizado/100,0);
 }
 function somaOrc(rows, linha, meses){
-  return rows.filter(r=>r.linha_dre===linha && r.mes_ano.startsWith('2026') && meses.includes(r.mes_ano.slice(5,7)))
+  return rows.filter(r=>r.linha_dre===linha && meses.includes(r.mes_ano.slice(5,7)))
     .reduce((s,r)=>s+r.orcado/100,0);
 }
 
@@ -302,7 +312,7 @@ function renderForecast(){
 
   // Meses com realizado em 2026
   const mesesReal=[...new Set(
-    DADOS.filter(r=>r.mes_ano.startsWith('2026')&&r.linha_dre==='Receita Bruta'&&r.realizado!==0)
+    DADOS.filter(r=>r.mes_ano.startsWith('2026')&&r.linha_dre==='Receita Bruta'&&r.realizado/100!==0)
       .map(r=>r.mes_ano.slice(5,7))
   )].sort();
 
@@ -383,7 +393,7 @@ function renderForecast(){
       <th class="th-total">AV%</th>
       <th class="th-orig">R$</th>
       <th class="th-orig">AV%</th>
-      <th style="background:var(--col-orig);color:rgba(255,255,255,.85);font-size:10px;padding:7px 10px;text-align:right">Forecast vs Orç</th>
+      <th style="background:var(--col-orig);color:rgba(255,255,255,.75);font-size:10px;font-weight:500;padding:6px 8px;text-align:right">Forecast vs Orç</th>
     </tr>`;
 
   // Bases AV%
