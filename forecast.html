@@ -250,11 +250,11 @@ function filtrar(rows){
 }
 
 function somaReal(rows, linha, meses){
-  return rows.filter(r=>r.linha_dre===linha && meses.includes(r.mes_ano.slice(5,7)))
+  return rows.filter(r=>r.linha_dre===linha && r.mes_ano.startsWith('2026') && meses.includes(r.mes_ano.slice(5,7)))
     .reduce((s,r)=>s+r.realizado/100,0);
 }
 function somaOrc(rows, linha, meses){
-  return rows.filter(r=>r.linha_dre===linha && meses.includes(r.mes_ano.slice(5,7)))
+  return rows.filter(r=>r.linha_dre===linha && r.mes_ano.startsWith('2026') && meses.includes(r.mes_ano.slice(5,7)))
     .reduce((s,r)=>s+r.orcado/100,0);
 }
 
