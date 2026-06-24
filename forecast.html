@@ -448,8 +448,9 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
     const orcF =somaOrc(rows,l,mesesOrc);
     const orcTot=orcP+orcF;
     const isTot=TOTALIZADORES.has(l);
-    // Pré-preenche com fator tendência (= realP/orcP × 100), igual ao Forecast ②
+    // Pré-preenche com fator tendência = realP/orcP × 100, idêntico ao Forecast ②
     const pct=(orcP!==0)?(realP/orcP*100):100;
+    // Valor inicial — será sobrescrito pelo recalcSim() logo abaixo para totalizadores
     const fcstF=orcF*pct/100;
     const fcstTot=realP+fcstF;
     const ah=fmtAH(fcstTot,orcTot);
@@ -466,7 +467,8 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
       <td class="${neg(orcTot)}">${fmtN(orcTot)}</td>
       <td class="${ah.cls}" id="${id}_ah">${ah.txt}</td></tr>`;
   }).join('');
-  _recalcKpiSim();
+  // Recalcula totalizadores a partir dos componentes para garantir consistência com Forecast ②
+  recalcSim();
 }
 
 function recalcSim(){
