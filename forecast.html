@@ -147,9 +147,8 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
   <div class="tbl-wrap">
     <div class="tbl-header"><div class="tbl-title">③ Simulador — Ajuste % do Orçado por Linha</div></div>
     <div class="sim-bar">
-      <span class="sim-bar-lbl">% pré-preenchido com a tendência. Edite por linha e clique em Recalcular.</span>
+      <span class="sim-bar-lbl">% pré-preenchido com a tendência. Edite por linha — recálculo automático.</span>
       <button class="btn-rst" onclick="resetSim()">↺ Resetar</button>
-      <button class="btn-sim" onclick="recalcSim()">▶ Recalcular</button>
     </div>
     <div class="kpis" id="kpi-sim" style="grid-template-columns:repeat(6,1fr)"></div>
     <div class="tbl-outer"><table><thead id="thead-sim"></thead><tbody id="tbody-sim"></tbody></table></div>
@@ -197,12 +196,15 @@ const LINHAS=[
 ];
 
 // ── Helpers ──
-const fmtN=v=>Math.round(Math.abs(v)).toLocaleString('pt-BR');
+const fmtN=v=>{
+  const s=Math.round(Math.abs(v)).toLocaleString('pt-BR');
+  return v<0?'-'+s:s;
+};
 function fmtM(v){
   const a=Math.abs(v);
   const s=a>=1e6?'R$ '+(a/1e6).toFixed(2).replace('.',',')+'M':
           a>=1e3?'R$ '+(a/1e3).toFixed(0)+'K':'R$ '+Math.round(a).toLocaleString('pt-BR');
-  return v<0?`(${s})`:s;
+  return v<0?`-${s}`:s;
 }
 const fmtAV=(v,b)=>b?(v/b*100).toFixed(1).replace('.',',')+' %':'-';
 function fmtAH(v,b){
@@ -358,14 +360,20 @@ function renderTendencia(rows,mesesReal,mesesOrc,lReal,lOrc){
 // Linhas que NÃO recebem input — são calculadas como soma dos componentes
 const TOTALIZADORES=new Set(['Receita Bruta','Receita Líquida','Lucro Bruto','Lucro Bruto Ajustado','SG&A','EBITDA','EBITDA Ajustado']);
 
-// Calcula todas as linhas do simulador a partir dos inputs das linhas editáveis
-// Totalizadores são derivados dos componentes, nunca do input direto
+// % do fator tendência por linha (igual ao Forecast ②)
+function _fatorTend(rows,l,mesesReal){
+  const realP=somaReal(rows,l,mesesReal);
+  const orcP =somaOrc(rows,l,mesesReal);
+  return(orcP!==0)?(realP/orcP*100):100;
+}
+
+// Calcula todas as linhas — editáveis via input, totalizadores via soma de componentes
 function _calcSim(){
   if(!_SC)return{};
   const{rows,mesesReal,mesesOrc}=_SC;
   const v={};
 
-  // 1) Calcular linhas editáveis (não totalizadores)
+  // Linhas editáveis
   LINHAS.forEach(({l})=>{
     if(TOTALIZADORES.has(l))return;
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
@@ -374,60 +382,65 @@ function _calcSim(){
     const realP=somaReal(rows,l,mesesReal);
     const orcP =somaOrc(rows,l,mesesReal);
     const orcF =somaOrc(rows,l,mesesOrc);
-    v[l]={realP, orcP, orcF, fcstF:orcF*pct/100, orcTot:orcP+orcF};
+    v[l]={realP,orcP,orcF,pct,fcstF:orcF*pct/100,orcTot:orcP+orcF};
     v[l].fcstTot=v[l].realP+v[l].fcstF;
   });
 
-  // helper para pegar fcstTot com sinal correto (negativo se linha é dedução)
   const ft=l=>v[l]?v[l].fcstTot:0;
   const ot=l=>v[l]?v[l].orcTot:0;
   const rP=l=>v[l]?v[l].realP:0;
 
-  // 2) Reconstruir totalizadores
-  // Receita Bruta = Revenda + Serviços − Ajuste Intercompany (o ajuste já vem negativo no banco)
-  const rb_fcst = ft('Receita com Revenda de Mercadorias') + ft('Receita com Serviços') + ft('Ajuste Intercompany');
-  const rb_orc  = ot('Receita com Revenda de Mercadorias') + ot('Receita com Serviços') + ot('Ajuste Intercompany');
-  const rb_real = rP('Receita com Revenda de Mercadorias') + rP('Receita com Serviços') + rP('Ajuste Intercompany');
-  v['Receita Bruta']={realP:rb_real,orcTot:rb_orc,fcstTot:rb_fcst};
+  // Totalizadores — calculados como soma dos componentes (sinais já vêm do banco)
+  // Receita Bruta
+  const rb_f=ft('Receita com Revenda de Mercadorias')+ft('Receita com Serviços')+ft('Ajuste Intercompany');
+  const rb_o=ot('Receita com Revenda de Mercadorias')+ot('Receita com Serviços')+ot('Ajuste Intercompany');
+  const rb_r=rP('Receita com Revenda de Mercadorias')+rP('Receita com Serviços')+rP('Ajuste Intercompany');
+  v['Receita Bruta']={realP:rb_r,orcTot:rb_o,fcstTot:rb_f,fcstF:rb_f-rb_r};
 
-  // Receita Líquida = Receita Bruta + Impostos (impostos já vêm negativos)
-  const rl_fcst = rb_fcst + ft('Impostos S/ Vendas');
-  const rl_orc  = rb_orc  + ot('Impostos S/ Vendas');
-  const rl_real = rb_real + rP('Impostos S/ Vendas');
-  v['Receita Líquida']={realP:rl_real,orcTot:rl_orc,fcstTot:rl_fcst};
+  // Receita Líquida = RB + Impostos (impostos negativos no banco)
+  const rl_f=rb_f+ft('Impostos S/ Vendas');
+  const rl_o=rb_o+ot('Impostos S/ Vendas');
+  const rl_r=rb_r+rP('Impostos S/ Vendas');
+  v['Receita Líquida']={realP:rl_r,orcTot:rl_o,fcstTot:rl_f,fcstF:rl_f-rl_r};
 
-  // Lucro Bruto = Receita Líquida + CMV & CSP (CMV já negativo)
-  const lb_fcst = rl_fcst + ft('CMV & CSP');
-  const lb_orc  = rl_orc  + ot('CMV & CSP');
-  const lb_real = rl_real + rP('CMV & CSP');
-  v['Lucro Bruto']={realP:lb_real,orcTot:lb_orc,fcstTot:lb_fcst};
+  // Lucro Bruto = RL + CMV & CSP (negativo no banco) — usa o grupo direto, igual ao Forecast ②
+  const lb_f=rl_f+ft('CMV & CSP');
+  const lb_o=rl_o+ot('CMV & CSP');
+  const lb_r=rl_r+rP('CMV & CSP');
+  v['Lucro Bruto']={realP:lb_r,orcTot:lb_o,fcstTot:lb_f,fcstF:lb_f-lb_r};
 
-  // Lucro Bruto Ajustado = Lucro Bruto + Verbas Comerciais (já negativo)
-  const lba_fcst = lb_fcst + ft('Verbas Comerciais');
-  const lba_orc  = lb_orc  + ot('Verbas Comerciais');
-  const lba_real = lb_real + rP('Verbas Comerciais');
-  v['Lucro Bruto Ajustado']={realP:lba_real,orcTot:lba_orc,fcstTot:lba_fcst};
+  // Lucro Bruto Ajustado = LB + Verbas (negativo)
+  const lba_f=lb_f+ft('Verbas Comerciais');
+  const lba_o=lb_o+ot('Verbas Comerciais');
+  const lba_r=lb_r+rP('Verbas Comerciais');
+  v['Lucro Bruto Ajustado']={realP:lba_r,orcTot:lba_o,fcstTot:lba_f,fcstF:lba_f-lba_r};
 
-  // SG&A = soma dos componentes (todos negativos)
-  const sgaCols=['Comissões sobre Vendas','Gastos com Pessoal Comercial','Gastos com Pessoal - SG&A',
-    'Despesas Comerciais','Despesas com Distribuição','Despesas Administrativas',
-    'Despesas Tributárias','Aluguel'];
-  const sga_fcst=sgaCols.reduce((s,l)=>s+ft(l),0);
-  const sga_orc =sgaCols.reduce((s,l)=>s+ot(l),0);
-  const sga_real=sgaCols.reduce((s,l)=>s+rP(l),0);
-  v['SG&A']={realP:sga_real,orcTot:sga_orc,fcstTot:sga_fcst};
+  // SG&A = soma dos subgrupos (todos negativos)
+  const sgaL=['Comissões sobre Vendas','Gastos com Pessoal Comercial','Gastos com Pessoal - SG&A',
+    'Despesas Comerciais','Despesas com Distribuição','Despesas Administrativas','Despesas Tributárias','Aluguel'];
+  const sga_f=sgaL.reduce((s,l)=>s+ft(l),0);
+  const sga_o=sgaL.reduce((s,l)=>s+ot(l),0);
+  const sga_r=sgaL.reduce((s,l)=>s+rP(l),0);
+  v['SG&A']={realP:sga_r,orcTot:sga_o,fcstTot:sga_f,fcstF:sga_f-sga_r};
 
   // EBITDA = LBA + SGA + Outras
-  const ebt_fcst = lba_fcst + sga_fcst + ft('Outras Receitas/Despesas Operacionais');
-  const ebt_orc  = lba_orc  + sga_orc  + ot('Outras Receitas/Despesas Operacionais');
-  const ebt_real = lba_real + sga_real  + rP('Outras Receitas/Despesas Operacionais');
-  v['EBITDA']={realP:ebt_real,orcTot:ebt_orc,fcstTot:ebt_fcst};
+  const ebt_f=lba_f+sga_f+ft('Outras Receitas/Despesas Operacionais');
+  const ebt_o=lba_o+sga_o+ot('Outras Receitas/Despesas Operacionais');
+  const ebt_r=lba_r+sga_r+rP('Outras Receitas/Despesas Operacionais');
+  v['EBITDA']={realP:ebt_r,orcTot:ebt_o,fcstTot:ebt_f,fcstF:ebt_f-ebt_r};
 
-  // EBITDA Ajustado = EBITDA + Resultados Não Recorrentes
-  const eba_fcst = ebt_fcst + ft('Resultados Não Recorentes');
-  const eba_orc  = ebt_orc  + ot('Resultados Não Recorentes');
-  const eba_real = ebt_real + rP('Resultados Não Recorentes');
-  v['EBITDA Ajustado']={realP:eba_real,orcTot:eba_orc,fcstTot:eba_fcst};
+  // EBITDA Ajustado = EBITDA + Resultados
+  const eba_f=ebt_f+ft('Resultados Não Recorentes');
+  const eba_o=ebt_o+ot('Resultados Não Recorentes');
+  const eba_r=ebt_r+rP('Resultados Não Recorentes');
+  v['EBITDA Ajustado']={realP:eba_r,orcTot:eba_o,fcstTot:eba_f,fcstF:eba_f-eba_r};
+
+  // % calculado para totalizadores (para exibição)
+  TOTALIZADORES.forEach(l=>{
+    if(!v[l])return;
+    const orcP_tot=somaOrc(rows,l,mesesReal);
+    v[l].pct=(orcP_tot!==0)?(v[l].realP/orcP_tot*100):null;
+  });
 
   return v;
 }
@@ -448,25 +461,25 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
   const cg=thead.querySelector('colgroup');
   if(cg)cg.innerHTML=`<col style="width:310px"><col style="width:90px"><col style="width:90px"><col style="width:75px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:72px">`;
 
-  // Renderizar linhas — totalizadores sem input
   document.getElementById('tbody-sim').innerHTML=LINHAS.map(({l,c})=>{
     const realP=somaReal(rows,l,mesesReal);
     const orcP =somaOrc(rows,l,mesesReal);
     const orcF =somaOrc(rows,l,mesesOrc);
     const orcTot=orcP+orcF;
     const isTot=TOTALIZADORES.has(l);
+    // Pré-preenche com fator tendência (= realP/orcP × 100), igual ao Forecast ②
     const pct=(orcP!==0)?(realP/orcP*100):100;
     const fcstF=orcF*pct/100;
     const fcstTot=realP+fcstF;
     const ah=fmtAH(fcstTot,orcTot);
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
-    const inputCell=isTot
-      ? `<td style="text-align:center;color:var(--muted);font-size:11px" id="${id}_pct">—</td>`
+    const pctCell=isTot
+      ? `<td style="text-align:right;color:var(--muted);font-size:11px" id="${id}_pct">${pct.toFixed(1)} %</td>`
       : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.1" value="${pct.toFixed(1)}" onchange="recalcSim()"></td>`;
     return`<tr class="${c}"><td>${l}</td>
       <td class="${neg(realP)}">${fmtN(realP)}</td>
       <td class="${neg(orcF)}">${fmtN(orcF)}</td>
-      ${inputCell}
+      ${pctCell}
       <td class="${neg(fcstF)}" id="${id}_fF">${fmtN(fcstF)}</td>
       <td class="${neg(fcstTot)}" id="${id}_fT">${fmtN(fcstTot)}</td>
       <td class="${neg(orcTot)}">${fmtN(orcTot)}</td>
@@ -481,45 +494,26 @@ function recalcSim(){
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
     const dat=cv[l];if(!dat)return;
     const isTot=TOTALIZADORES.has(l);
-
-    // Para totalizadores: atualiza os 3 campos calculados
-    // Para editáveis: atualiza só fcstF e fcstTot (o input já foi editado pelo usuário)
-    if(isTot){
-      // fcstF = fcstTot − realP
-      const fcstF=dat.fcstTot-dat.realP;
-      const eF=document.getElementById(id+'_fF'),eT=document.getElementById(id+'_fT'),eAH=document.getElementById(id+'_ah');
-      if(eF){eF.textContent=fmtN(fcstF);eF.className=neg(fcstF);}
-      if(eT){eT.textContent=fmtN(dat.fcstTot);eT.className=neg(dat.fcstTot);}
-      if(eAH){const ah=fmtAH(dat.fcstTot,dat.orcTot);eAH.textContent=ah.txt;eAH.className=ah.cls;}
-    } else {
-      const inp=document.getElementById(id);if(!inp)return;
-      const pct=parseFloat(inp.value)||100;
-      const{rows,mesesReal,mesesOrc}=_SC;
-      const orcP=somaOrc(rows,l,mesesReal);
-      const orcF=somaOrc(rows,l,mesesOrc);
-      const realP=somaReal(rows,l,mesesReal);
-      const fcstF=orcF*pct/100;
-      const fcstTot=realP+fcstF;
-      const ah=fmtAH(fcstTot,orcP+orcF);
-      const eF=document.getElementById(id+'_fF'),eT=document.getElementById(id+'_fT'),eAH=document.getElementById(id+'_ah');
-      if(eF){eF.textContent=fmtN(fcstF);eF.className=neg(fcstF);}
-      if(eT){eT.textContent=fmtN(fcstTot);eT.className=neg(fcstTot);}
-      if(eAH){eAH.textContent=ah.txt;eAH.className=ah.cls;}
-    }
+    const eF=document.getElementById(id+'_fF');
+    const eT=document.getElementById(id+'_fT');
+    const eAH=document.getElementById(id+'_ah');
+    const ePct=document.getElementById(id+'_pct');
+    if(eF){eF.textContent=fmtN(dat.fcstF);eF.className=neg(dat.fcstF);}
+    if(eT){eT.textContent=fmtN(dat.fcstTot);eT.className=neg(dat.fcstTot);}
+    if(eAH){const ah=fmtAH(dat.fcstTot,dat.orcTot);eAH.textContent=ah.txt;eAH.className=ah.cls;}
+    if(isTot&&ePct&&dat.pct!=null)ePct.textContent=dat.pct.toFixed(1)+' %';
   });
   _recalcKpiSim();
 }
 
 function resetSim(){
   if(!_SC)return;
-  const{rows,mesesReal,mesesOrc}=_SC;
+  const{rows,mesesReal}=_SC;
   LINHAS.forEach(({l})=>{
     if(TOTALIZADORES.has(l))return;
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
     const inp=document.getElementById(id);if(!inp)return;
-    const realP=somaReal(rows,l,mesesReal);
-    const orcP =somaOrc(rows,l,mesesReal);
-    inp.value=(orcP!==0)?(realP/orcP*100).toFixed(1):'100.0';
+    inp.value=_fatorTend(rows,l,mesesReal).toFixed(1);
   });
   recalcSim();
 }
