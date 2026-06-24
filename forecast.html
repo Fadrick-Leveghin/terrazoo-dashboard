@@ -448,9 +448,10 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
     const orcF =somaOrc(rows,l,mesesOrc);
     const orcTot=orcP+orcF;
     const isTot=TOTALIZADORES.has(l);
-    // Pré-preenche com fator tendência = realP/orcP × 100, idêntico ao Forecast ②
-    const pct=(orcP!==0)?(realP/orcP*100):100;
-    // Valor inicial — será sobrescrito pelo recalcSim() logo abaixo para totalizadores
+    // % = fcstF_tendencia ÷ orcF × 100 — garante que Simulador = Forecast ② sem edição
+    const fator=(orcP!==0)?realP/orcP:1;
+    const fcstF_tend=orcF*fator;
+    const pct=(orcF!==0)?(fcstF_tend/orcF*100):100;
     const fcstF=orcF*pct/100;
     const fcstTot=realP+fcstF;
     const ah=fmtAH(fcstTot,orcTot);
@@ -467,7 +468,7 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
       <td class="${neg(orcTot)}">${fmtN(orcTot)}</td>
       <td class="${ah.cls}" id="${id}_ah">${ah.txt}</td></tr>`;
   }).join('');
-  // Recalcula totalizadores a partir dos componentes para garantir consistência com Forecast ②
+  // Recalcula totalizadores a partir dos componentes
   recalcSim();
 }
 
@@ -491,12 +492,17 @@ function recalcSim(){
 
 function resetSim(){
   if(!_SC)return;
-  const{rows,mesesReal}=_SC;
+  const{rows,mesesReal,mesesOrc}=_SC;
   LINHAS.forEach(({l})=>{
     if(TOTALIZADORES.has(l))return;
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
     const inp=document.getElementById(id);if(!inp)return;
-    inp.value=_fatorTend(rows,l,mesesReal).toFixed(1);
+    const realP=somaReal(rows,l,mesesReal);
+    const orcP =somaOrc(rows,l,mesesReal);
+    const orcF =somaOrc(rows,l,mesesOrc);
+    const fator=(orcP!==0)?realP/orcP:1;
+    const fcstF_tend=orcF*fator;
+    inp.value=(orcF!==0)?(fcstF_tend/orcF*100).toFixed(1):'100.0';
   });
   recalcSim();
 }
