@@ -194,7 +194,7 @@ tr.row-highlight .sim-input{background:rgba(255,255,255,.6);border-color:var(--v
       <button class="btn-reset" onclick="resetSimulador()">↺ Resetar tendência</button>
       <button class="btn-simular" onclick="recalcSimulador()">▶ Recalcular</button>
     </div>
-    <div class="kpis" id="kpi-sim" style="padding:16px 16px 0;grid-template-columns:repeat(5,1fr)"></div>
+    <div class="kpis" id="kpi-sim" style="padding:16px 16px 0;grid-template-columns:repeat(6,1fr)"></div>
     <div class="tbl-outer">
       <table id="tbl-sim">
         <thead id="thead-sim"></thead>
@@ -441,12 +441,158 @@ function renderForecast(){
 }
 
 function exportarCSV(){
-  const rows=[...document.querySelectorAll('#tbody-forecast tr')];
-  const hdr=[...document.querySelectorAll('#thead-forecast th')].map(t=>t.textContent.trim()).join(';');
-  const lines=[hdr,...rows.map(tr=>[...tr.querySelectorAll('td')].map(td=>td.textContent.trim()).join(';'))];
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'}));
-  a.download=`TerraZoo_Forecast_2026_${new Date().toISOString().slice(0,10)}.csv`;
+  // ── Paleta ──
+  const COR = {
+    real:   '1a2e1f', orc:   '2E7D32', total:  '388E3C', orig:   '558B2F',
+    total_r:'1a2e1f', sub_r: '2E7D32', hi_r:   'b2dfc4', grp_r:  'E8F5E9',
+    red:    '9C0006', white: 'FFFFFF', txt:    '111111', muted:  '555555'
+  };
+
+  // helpers SpreadsheetML
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const num = v => String(v).replace(/\./,',');
+
+  function rowCls(cls){
+    if(cls==='row-total')    return {bg:COR.total_r, fg:COR.white, bold:true};
+    if(cls==='row-subtotal') return {bg:COR.sub_r,   fg:COR.white, bold:true};
+    if(cls==='row-highlight')return {bg:COR.hi_r,    fg:COR.total_r,bold:true};
+    if(cls==='row-group')    return {bg:COR.grp_r,   fg:COR.muted, bold:false};
+    return {bg:COR.white, fg:COR.txt, bold:false};
+  }
+
+  function styleId(id){ return `s${id}`; }
+
+  // Estilos compartilhados
+  const styles = [];
+  const styleMap = {};
+  function getStyle(bg, fg, bold, halign='Right', border=false){
+    const key = `${bg}|${fg}|${bold}|${halign}|${border}`;
+    if(styleMap[key]) return styleMap[key];
+    const id = styles.length + 60;
+    styles.push({id, bg, fg, bold, halign, border});
+    styleMap[key] = id;
+    return id;
+  }
+
+  // Cabeçalhos de colunas por tabela
+  function hdrStyle(bg){ return getStyle(bg, COR.white, true, 'Center'); }
+
+  // ── Construir aba ──
+  function buildSheet(name, theadId, tbodyId, isSimulador){
+    const ths = [...document.querySelectorAll(`#${theadId} th`)];
+    const trs = [...document.querySelectorAll(`#${tbodyId} tr`)];
+
+    // Cabeçalho gr1
+    const gr1 = [...document.querySelectorAll(`#${theadId} tr.gr1 th`)];
+    const gr2 = [...document.querySelectorAll(`#${theadId} tr.gr2 th`)];
+
+    // Mapear cor do header por índice de coluna
+    const colColors = [];
+    colColors.push(COR.total_r); // col 0 = DRE
+    gr1.forEach(th => {
+      const span = parseInt(th.getAttribute('colspan')||'1');
+      let bg = COR.total_r;
+      if(th.classList.contains('th-real'))  bg = COR.real;
+      if(th.classList.contains('th-orc'))   bg = COR.orc;
+      if(th.classList.contains('th-total')) bg = COR.total;
+      if(th.classList.contains('th-orig'))  bg = COR.orig;
+      for(let i=0;i<span;i++) colColors.push(bg);
+    });
+
+    let rows = '';
+
+    // Linha gr1 (grupos)
+    rows += '<Row ss:Height="22">';
+    rows += `<Cell ss:StyleID="${getStyle(COR.total_r,COR.white,true,'Left')}"><Data ss:Type="String">${esc(name)}</Data></Cell>`;
+    gr1.forEach(th => {
+      const span = parseInt(th.getAttribute('colspan')||'1');
+      let bg = COR.total_r;
+      if(th.classList.contains('th-real'))  bg = COR.real;
+      if(th.classList.contains('th-orc'))   bg = COR.orc;
+      if(th.classList.contains('th-total')) bg = COR.total;
+      if(th.classList.contains('th-orig'))  bg = COR.orig;
+      const sid = getStyle(bg, COR.white, true, 'Center');
+      rows += `<Cell ss:StyleID="${sid}" ss:MergeAcross="${span-1}"><Data ss:Type="String">${esc(th.textContent.trim())}</Data></Cell>`;
+    });
+    rows += '</Row>';
+
+    // Linha gr2 (subheaders)
+    rows += '<Row ss:Height="18">';
+    rows += `<Cell ss:StyleID="${getStyle(COR.total_r,COR.white,true,'Left')}"><Data ss:Type="String">Linha DRE</Data></Cell>`;
+    gr2.forEach((th,i) => {
+      const bg = colColors[i+1] || COR.total_r;
+      const sid = getStyle(bg, COR.white, true, 'Right');
+      rows += `<Cell ss:StyleID="${sid}"><Data ss:Type="String">${esc(th.textContent.trim())}</Data></Cell>`;
+    });
+    rows += '</Row>';
+
+    // Dados
+    trs.forEach(tr => {
+      const cls = tr.className || '';
+      const {bg, fg, bold} = rowCls(cls);
+      const tds = [...tr.querySelectorAll('td')];
+      rows += '<Row ss:Height="16">';
+      tds.forEach((td, i) => {
+        // col 0 = nome da linha (left), demais = right
+        const halign = i===0 ? 'Left' : 'Right';
+        const sid = getStyle(bg, fg, bold, halign);
+        // input do simulador
+        const inp = td.querySelector('input');
+        const txt = inp ? inp.value+'%' : td.textContent.trim();
+        // tenta número
+        const raw = txt.replace(/\./g,'').replace(',','.').replace(/[^0-9\.\-\+]/g,'');
+        const n = parseFloat(raw);
+        if(!isNaN(n) && txt!=='' && i>0 && !txt.includes('%')){
+          rows += `<Cell ss:StyleID="${sid}"><Data ss:Type="Number">${n}</Data></Cell>`;
+        } else {
+          rows += `<Cell ss:StyleID="${sid}"><Data ss:Type="String">${esc(txt)}</Data></Cell>`;
+        }
+      });
+      rows += '</Row>';
+    });
+
+    return { name, rows };
+  }
+
+  // Gerar estilos XML — roda depois de coletar todos via getStyle
+  const sheets = [
+    buildSheet('Forecast Base',      'thead-forecast', 'tbody-forecast', false),
+    buildSheet('Forecast Tendência', 'thead-ajustado', 'tbody-ajustado', false),
+    buildSheet('Simulador',          'thead-sim',      'tbody-sim',      true),
+  ];
+
+  // Montar estilos
+  let stylesXml = `<Style ss:ID="Default"><Alignment ss:Vertical="Center"/><Font ss:FontName="Calibri" ss:Size="11"/></Style>\n`;
+  styles.forEach(s => {
+    const bold = s.bold ? '<Font ss:Bold="1" ss:FontName="Calibri" ss:Size="11" ss:Color="#'+s.fg+'"/>' : `<Font ss:FontName="Calibri" ss:Size="11" ss:Color="#${s.fg}"/>`;
+    stylesXml += `<Style ss:ID="${s.id}">
+      <Alignment ss:Horizontal="${s.halign}" ss:Vertical="Center"/>
+      <Interior ss:Color="#${s.bg}" ss:Pattern="Solid"/>
+      ${bold}
+    </Style>\n`;
+  });
+
+  const sheetsXml = sheets.map(s=>`
+    <Worksheet ss:Name="${esc(s.name)}">
+      <Table ss:DefaultColumnWidth="90" ss:DefaultRowHeight="16">
+        <Column ss:Width="220"/>
+        ${s.rows}
+      </Table>
+    </Worksheet>`).join('');
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:x="urn:schemas-microsoft-com:office:excel">
+  <Styles>${stylesXml}</Styles>
+  ${sheetsXml}
+</Workbook>`;
+
+  const blob = new Blob([xml], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `TerraZoo_Forecast_2026_${new Date().toISOString().slice(0,10)}.xls`;
   a.click();
 }
 
@@ -584,13 +730,15 @@ function _getSimVal(linha){
 }
 
 function _atualizarKpiSim(){
-  const rb  = _getSimVal('Receita Bruta');
-  const rl  = _getSimVal('Receita Líquida');
-  const mb  = _getSimVal('Lucro Bruto Ajustado');
-  const sga = _getSimVal('SG&A');
-  const eb  = _getSimVal('EBITDA Ajustado');
+  const rb   = _getSimVal('Receita Bruta');
+  const rl   = _getSimVal('Receita Líquida');
+  const mb   = _getSimVal('Lucro Bruto Ajustado');
+  const sga  = _getSimVal('SG&A');
+  const ebt  = _getSimVal('EBITDA');
+  const eb   = _getSimVal('EBITDA Ajustado');
   const ah_rb  = fmtAH(rb.fcstTot,  rb.orcTot);
   const ah_eb  = fmtAH(eb.fcstTot,  eb.orcTot);
+  const ah_ebt = fmtAH(ebt.fcstTot, ebt.orcTot);
   const ah_sga = fmtAH(sga.fcstTot, sga.orcTot);
   document.getElementById('kpi-sim').innerHTML=`
     <div class="kpi kpi-sim">
@@ -604,7 +752,7 @@ function _atualizarKpiSim(){
       <div class="kpi-sub">AV% ${fmtAV(rl.fcstTot, rb.fcstTot)} da RB</div>
     </div>
     <div class="kpi kpi-sim">
-      <div class="kpi-label">Margem Bruta Ajustada — Sim.</div>
+      <div class="kpi-label">Margem Bruta Ajustada</div>
       <div class="kpi-value">${fmtM(mb.fcstTot)}</div>
       <div class="kpi-sub kpi-${mb.fcstTot>=0?'up':'dn'}">${fmtAV(mb.fcstTot, rl.fcstTot)} da RL</div>
     </div>
@@ -612,6 +760,11 @@ function _atualizarKpiSim(){
       <div class="kpi-label">SG&A — Simulado</div>
       <div class="kpi-value">${fmtM(sga.fcstTot)}</div>
       <div class="kpi-sub kpi-${ah_sga.cls==='ah-pos'?'dn':'up'}">${ah_sga.txt} vs Orç Total</div>
+    </div>
+    <div class="kpi kpi-sim">
+      <div class="kpi-label">EBITDA — Simulado</div>
+      <div class="kpi-value">${fmtM(ebt.fcstTot)}</div>
+      <div class="kpi-sub kpi-${ah_ebt.cls==='ah-pos'?'up':'dn'}">${ah_ebt.txt} vs Orç Total</div>
     </div>
     <div class="kpi kpi-sim">
       <div class="kpi-label">EBITDA Ajustado — Simulado</div>
