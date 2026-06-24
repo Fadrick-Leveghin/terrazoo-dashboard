@@ -523,6 +523,7 @@ function _recalcKpiSim(){
 // RENDER TUDO
 // ══════════════════════════════════════════
 function renderTudo(){
+  try{
   const rows=filtrar(DADOS);
   const mesesReal=[...new Set(
     DADOS.filter(r=>r.mes_ano.startsWith('2026')&&r.linha_dre==='Receita Bruta'&&r.realizado!==0)
@@ -539,6 +540,11 @@ function renderTudo(){
   renderBase(rows,mesesReal,mesesOrc,lReal,lOrc);
   renderTendencia(rows,mesesReal,mesesOrc,lReal,lOrc);
   renderSim(rows,mesesReal,mesesOrc,lReal,lOrc);
+  }catch(e){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('error-box').style.display='block';
+    document.getElementById('error-msg').textContent='Erro renderTudo: '+e.message+' | '+e.stack;
+  }
 }
 
 function onVisaoChange(){
