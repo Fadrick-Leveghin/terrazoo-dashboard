@@ -358,7 +358,7 @@ function renderTendencia(rows,mesesReal,mesesOrc,lReal,lOrc){
 // ③ SIMULADOR
 // ══════════════════════════════════════════
 // Totalizadores CALCULADOS (nunca editáveis — derivados aritméticos puros)
-const TOTALIZADORES=new Set(['Lucro Bruto','Lucro Bruto Ajustado','EBITDA','EBITDA Ajustado']);
+const TOTALIZADORES=new Set(['Lucro Bruto','Lucro Bruto Ajustado','SG&A','EBITDA','EBITDA Ajustado']);
 // Linhas com input editável (inclui RB, RL, SGA que têm fator próprio no banco)
 // Lucro Bruto = RL + CMV; LBA = LB + Verbas; EBITDA = LBA + SGA + Outras; EBITA Aj = EBITDA + Res
 
@@ -404,10 +404,19 @@ function _calcSim(){
   const lba_r=lb_r+rP('Verbas Comerciais');
   v['Lucro Bruto Ajustado']={realP:lba_r,orcTot:lba_o,fcstTot:lba_f,fcstF:lba_f-lba_r};
 
-  // EBITDA = LBA + SGA + Outras
-  const ebt_f=lba_f+ft('SG&A')+ft('Outras Receitas/Despesas Operacionais');
-  const ebt_o=lba_o+ot('SG&A')+ot('Outras Receitas/Despesas Operacionais');
-  const ebt_r=lba_r+rP('SG&A')+rP('Outras Receitas/Despesas Operacionais');
+  // EBITDA = LBA + subgrupos SG&A + Outras (não usa ft('SG&A') para evitar divergência de fator)
+  const sgaL=['Comissões sobre Vendas','Gastos com Pessoal Comercial','Gastos com Pessoal - SG&A',
+    'Despesas Comerciais','Despesas com Distribuição','Despesas Administrativas','Despesas Tributárias','Aluguel'];
+  const sga_f=sgaL.reduce((s,l)=>s+ft(l),0);
+  const sga_o=sgaL.reduce((s,l)=>s+ot(l),0);
+  const sga_r=sgaL.reduce((s,l)=>s+rP(l),0);
+  // Atualiza SG&A com valor calculado pelos subgrupos (para consistência com Forecast ②)
+  v['SG&A']={realP:sga_r,orcTot:sga_o,fcstTot:sga_f,fcstF:sga_f-sga_r,
+    orcP:somaOrc(rows,'SG&A',mesesReal),orcF:somaOrc(rows,'SG&A',mesesOrc),pct:null};
+
+  const ebt_f=lba_f+sga_f+ft('Outras Receitas/Despesas Operacionais');
+  const ebt_o=lba_o+sga_o+ot('Outras Receitas/Despesas Operacionais');
+  const ebt_r=lba_r+sga_r+rP('Outras Receitas/Despesas Operacionais');
   v['EBITDA']={realP:ebt_r,orcTot:ebt_o,fcstTot:ebt_f,fcstF:ebt_f-ebt_r};
 
   // EBITDA Ajustado = EBITDA + Resultados
