@@ -457,8 +457,8 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
     const ah=fmtAH(fcstTot,orcTot);
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
     const pctCell=isTot
-      ? `<td style="text-align:right;color:var(--muted);font-size:11px;padding-right:10px" id="${id}_pct">${pct.toFixed(1)} %</td>`
-      : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.1" value="${pct.toFixed(1)}" onchange="recalcSim()"></td>`;
+      ? `<td style="text-align:right;color:var(--muted);font-size:11px;padding-right:10px" id="${id}_pct">${pct.toFixed(4)} %</td>`
+      : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.01" value="${pct.toFixed(4)}" onchange="recalcSim()"></td>`;
     return`<tr class="${c}"><td>${l}</td>
       <td class="${neg(realP)}">${fmtN(realP)}</td>
       <td class="${neg(orcF)}">${fmtN(orcF)}</td>
@@ -485,7 +485,7 @@ function recalcSim(){
     if(eF){eF.textContent=fmtN(dat.fcstF);eF.className=neg(dat.fcstF);}
     if(eT){eT.textContent=fmtN(dat.fcstTot);eT.className=neg(dat.fcstTot);}
     if(eAH){const ah=fmtAH(dat.fcstTot,dat.orcTot);eAH.textContent=ah.txt;eAH.className=ah.cls;}
-    if(isTot&&ePct&&dat.pct!=null)ePct.textContent=dat.pct.toFixed(1)+' %';
+    if(isTot&&ePct&&dat.pct!=null)ePct.textContent=dat.pct.toFixed(4)+' %';
   });
   _recalcKpiSim();
 }
@@ -502,7 +502,7 @@ function resetSim(){
     const orcF =somaOrc(rows,l,mesesOrc);
     const fator=(orcP!==0)?realP/orcP:1;
     const fcstF_tend=orcF*fator;
-    inp.value=(orcF!==0)?(fcstF_tend/orcF*100).toFixed(1):'100.0';
+    inp.value=(orcF!==0)?(fcstF_tend/orcF*100).toFixed(4):'100.0';
   });
   recalcSim();
 }
