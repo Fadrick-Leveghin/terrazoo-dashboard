@@ -6,62 +6,45 @@
 <title>TerraZoo — Forecast 2026</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Calibri:wght@300;400;600&display=swap');
-:root {
-  --v1:#1a2e1f; --v2:#2E7D32; --v3:#4CAF50; --v4:#A5D6A7; --v5:#b2dfc4; --v6:#E8F5E9;
-  --txt:#111; --muted:#555; --borda:#C8E6C9; --fundo:#fff;
-  --red:#9C0006; --amber:#FFC000; --green:#2E7D32;
-  /* colunas forecast */
-  --col-real:#1a2e1f;
-  --col-orc:#2E7D32;
-  --col-total:#388E3C;
-  --col-orig:#558B2F;
-  /* row types — idêntico à DRE */
-  --row-total:#1a2e1f;       --row-total-txt:#fff;
-  --row-subtotal:#2E7D32;    --row-subtotal-txt:#fff;
-  --row-grupo:#E8F5E9;       --row-grupo-txt:#1a2e1f;
-  --row-highlight:#b2dfc4;   --row-highlight-txt:#1a2e1f;
+:root{
+  --v1:#1a2e1f;--v2:#2E7D32;--v3:#4CAF50;--v4:#A5D6A7;--v5:#b2dfc4;--v6:#E8F5E9;
+  --txt:#111;--muted:#666;--borda:#C8E6C9;
+  --red:#C62828;--amber:#E65100;--green:#2E7D32;
+  --col-real:#1B5E20;--col-orc:#2E7D32;--col-total:#388E3C;--col-orig:#4CAF50;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Calibri','Segoe UI',sans-serif;background:var(--fundo);color:var(--txt);min-height:100vh;font-size:13px}
+body{font-family:'Calibri','Segoe UI',sans-serif;background:#f5f8f5;color:var(--txt);min-height:100vh}
 
-/* HEADER */
 header{background:var(--v1);height:64px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
 .logo{font-size:22px;font-weight:600;color:#fff}.logo span{color:var(--v4)}
-.header-right{display:flex;align-items:center;gap:12px}
-.btn-back{font-size:12px;color:var(--v4);background:none;border:1px solid rgba(165,214,167,.3);padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .2s}
-.btn-back:hover{background:rgba(165,214,167,.1)}
-.btn-export{font-size:12px;color:#fff;background:var(--v2);border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;transition:background .2s}
+.header-right{display:flex;align-items:center;gap:10px}
+.btn-back{font-size:12px;color:var(--v4);background:none;border:1px solid rgba(165,214,167,.3);padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;text-decoration:none}
+.btn-export{font-size:12px;color:#fff;background:var(--v2);border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600}
 .btn-export:hover{background:var(--v3);color:var(--v1)}
 
-/* LOADING */
 #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px}
 .spinner{width:36px;height:36px;border:3px solid var(--borda);border-top-color:var(--v2);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* ERROR */
 #error-box{display:none;max-width:500px;margin:80px auto;padding:32px;background:#fff3f3;border:1px solid #ffcdd2;border-radius:12px;text-align:center}
-.error-title{font-size:18px;font-weight:600;color:var(--red);margin-bottom:8px}
-.error-msg{font-size:13px;color:#666;line-height:1.6}
+.error-title{font-size:18px;font-weight:600;color:#c62828;margin-bottom:8px}
 
-/* MAIN */
-main{max-width:1400px;margin:0 auto;padding:24px 20px 60px}
+main{max-width:1400px;margin:0 auto;padding:28px 20px 80px}
 
 /* FILTROS */
-.filtros-bar{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.filtro-group{display:flex;align-items:center;gap:8px}
+.filtros-bar{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .filtro-label{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
-select{background:var(--v6);border:1px solid var(--borda);color:var(--txt);font-size:12px;padding:6px 10px;border-radius:7px;font-family:inherit;cursor:pointer;transition:border-color .2s}
+select{background:var(--v6);border:1px solid var(--borda);color:var(--txt);font-size:12px;padding:6px 10px;border-radius:7px;font-family:inherit;cursor:pointer}
 select:focus{outline:none;border-color:var(--v3)}
 .filtro-sep{width:1px;height:28px;background:var(--borda)}
 
 /* PAGE HEADER */
-.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px}
 .page-title{font-size:22px;font-weight:600;color:var(--v1)}
 .page-sub{font-size:12px;color:var(--muted);margin-top:3px}
-.badge{background:var(--v5);color:var(--v1);font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:.5px;white-space:nowrap}
+.badge{background:var(--v5);color:var(--v1);font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px}
 
 /* KPI CARDS */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
 .kpi{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:16px 14px;border-left:4px solid var(--v2)}
 .kpi-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--v2);margin-bottom:6px}
 .kpi-value{font-size:22px;font-weight:600;color:var(--v1);letter-spacing:-0.5px;line-height:1.1}
@@ -70,7 +53,7 @@ select:focus{outline:none;border-color:var(--v3)}
 .kpi-dn{color:var(--red)!important;font-weight:600}
 
 /* TABLE WRAP */
-.tbl-wrap{overflow-x:auto;border:1px solid var(--borda);border-radius:10px;background:#fff;margin-bottom:20px}
+.tbl-wrap{background:#fff;border:1px solid var(--borda);border-radius:10px;overflow:hidden;margin-bottom:24px}
 .tbl-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--borda);background:#fff}
 .tbl-title{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--v2)}
 .tbl-legend{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--muted)}
@@ -79,54 +62,68 @@ select:focus{outline:none;border-color:var(--v3)}
 
 /* TABLE */
 .tbl-outer{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px;table-layout:fixed}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
 
-/* HEADER GROUPS — idêntico à DRE */
-thead tr.gr1 th{background:var(--v1);color:#fff;font-weight:600;font-size:11px;letter-spacing:.8px;text-transform:uppercase;padding:10px 8px;text-align:center;border-right:1px solid rgba(255,255,255,.1);white-space:nowrap}
-thead tr.gr2 th{background:#263a2b;color:rgba(255,255,255,.75);font-size:10px;font-weight:500;padding:6px 8px;text-align:right;border-right:1px solid rgba(255,255,255,.08);white-space:nowrap}
-thead tr.gr1 th:first-child,thead tr.gr2 th:first-child{text-align:left;padding-left:14px;min-width:220px}
+/* HEADER GROUPS */
+thead tr.gr1 th{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:9px 10px;text-align:center;border-right:2px solid rgba(255,255,255,.2);white-space:nowrap;color:#fff}
+thead tr.gr2 th{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:7px 10px;text-align:right;border-right:1px solid rgba(255,255,255,.15);white-space:nowrap;color:rgba(255,255,255,.85)}
+thead tr.gr2 th:first-child{text-align:left;padding-left:16px;min-width:200px}
 
-/* cada grupo de coluna herda cor no gr1 E gr2 */
-th.th-dre  {background:var(--v1)}
-th.th-real {background:var(--col-real)}
-th.th-orc  {background:var(--col-orc)}
-th.th-total{background:var(--col-total)}
-th.th-orig {background:var(--col-orig)}
+.th-dre{background:var(--v1);border-right:2px solid rgba(255,255,255,.2)!important}
+.th-real{background:var(--col-real)}
+.th-orc{background:var(--col-orc)}
+.th-total{background:var(--col-total)}
+.th-orig{background:#558B2F}
 
 /* BODY ROWS */
-tbody tr{border-bottom:1px solid #f0f5f0;transition:filter .1s}
-tbody tr:hover{filter:brightness(.96)}
+tbody tr{border-bottom:1px solid #f0f5f0}
+tbody tr:hover{background:#f8fdf8}
 
-td{padding:5px 8px;text-align:right;white-space:nowrap;border-right:1px solid #f0f5f0}
-td:first-child{text-align:left;padding-left:14px;border-right:1px solid #e0ebe0;min-width:220px}
+td{padding:7px 10px;text-align:right;white-space:nowrap}
+td:first-child{text-align:left;padding-left:16px;border-right:2px solid var(--borda)}
 .sep-r{border-right:2px solid rgba(0,0,0,.06)!important}
+.sep-l{border-left:2px solid rgba(0,0,0,.06)!important}
 
-/* fundo leve colunas */
-.bg-real {background:rgba(26,46,31,.03)}
-.bg-orc  {background:rgba(46,125,50,.03)}
-.bg-total{background:rgba(56,142,60,.05)}
-.bg-orig {background:rgba(85,139,47,.04)}
+/* coluna colorida fundo leve */
+.bg-real{background:rgba(27,94,32,.04)}
+.bg-orc{background:rgba(46,125,50,.04)}
+.bg-total{background:rgba(56,142,60,.06)}
+.bg-orig{background:rgba(85,139,47,.05)}
 
-/* valores */
+/* valores negativos */
 .neg{color:var(--red)!important}
+
+/* AV% */
 .av{color:var(--muted);font-size:11px}
+
+/* AH% */
 .ah-pos{color:var(--green);font-weight:600}
 .ah-neg{color:var(--red);font-weight:600}
 .ah-nt{color:var(--muted)}
 
-/* ROW TYPES — idêntico à DRE */
-tr.row-total     td{background:var(--row-total)!important;    color:var(--row-total-txt)!important;    font-weight:700;font-size:12px}
-tr.row-subtotal  td{background:var(--row-subtotal)!important; color:var(--row-subtotal-txt)!important; font-weight:600}
-tr.row-highlight td{background:var(--row-highlight)!important;color:var(--row-highlight-txt)!important;font-weight:600}
-tr.row-group     td{background:var(--row-grupo);color:var(--row-grupo-txt);font-weight:500}
-tr.row-total    td.ah-pos,tr.row-total    td.ah-neg{color:#fff!important}
-tr.row-subtotal td.ah-pos,tr.row-subtotal td.ah-neg{color:#fff!important}
+/* ROW TYPES */
+tr.row-total td{background:var(--v1)!important;color:#fff!important;font-weight:700}
+tr.row-total td.ah-pos,tr.row-total td.ah-neg{color:#fff!important}
+tr.row-subtotal td{background:var(--v2)!important;color:#fff!important;font-weight:600}
+tr.row-highlight td{background:var(--v5)!important;color:var(--v1)!important;font-weight:600}
+tr.row-group td{background:var(--v6);color:var(--muted)}
 
-/* FOOTER */
 footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:40px}
 .footer-logo{font-size:13px;font-weight:600;color:rgba(255,255,255,.4)}.footer-logo span{color:var(--v4)}
 .footer-info{font-size:11px;color:rgba(255,255,255,.25);letter-spacing:1px}
-@media(max-width:700px){.kpis{grid-template-columns:1fr 1fr}}
+/* SIMULADOR */
+.sim-input{width:62px;border:1px solid var(--borda);border-radius:4px;padding:3px 5px;font-size:11px;font-family:inherit;text-align:right;background:#fff;color:var(--txt);transition:border-color .2s}
+.sim-input:focus{outline:none;border-color:var(--v3);background:#f0faf5}
+tr.row-total    .sim-input,
+tr.row-subtotal .sim-input{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff}
+tr.row-highlight .sim-input{background:rgba(255,255,255,.6);border-color:var(--v2)}
+.btn-simular{font-size:12px;color:#fff;background:var(--v2);border:none;padding:6px 16px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600;transition:background .2s}
+.btn-simular:hover{background:var(--v3);color:var(--v1)}
+.btn-reset{font-size:12px;color:var(--v2);background:none;border:1px solid var(--borda);padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-reset:hover{background:var(--v6)}
+.sim-bar{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--borda);background:#f8fdf8}
+.sim-bar-label{font-size:11px;color:var(--muted);flex:1}
+.kpi-sim{border-left-color:var(--col-total)!important}
 </style>
 </head>
 <body>
@@ -169,11 +166,17 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
     <div class="badge" id="badge-periodo"></div>
   </div>
 
-  <div class="kpis" id="kpi-area" style="grid-template-columns:repeat(5,1fr)"></div>
+  <div class="kpis" id="kpi-area"></div>
 
   <div class="tbl-wrap">
     <div class="tbl-header">
       <div class="tbl-title">DRE Forecast Anual 2026</div>
+      <div class="tbl-legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--col-real)"></div>Realizado</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--col-orc)"></div>Orçado restante</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--col-total)"></div>Forecast Total</div>
+        <div class="leg"><div class="leg-dot" style="background:#558B2F"></div>Orçado Original</div>
+      </div>
     </div>
     <div class="tbl-outer">
       <table id="tbl-forecast">
@@ -184,13 +187,18 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
   </div>
   <div class="tbl-wrap" style="margin-top:28px">
     <div class="tbl-header">
-      <div class="tbl-title">Forecast Ajustado 2026 — Tendência por Linha</div>
+      <div class="tbl-title">Simulador de Forecast 2026</div>
     </div>
-    <div class="kpis" id="kpi-ajustado" style="padding:16px 16px 0;grid-template-columns:repeat(5,1fr)"></div>
+    <div class="sim-bar">
+      <span class="sim-bar-label">Ajuste o % do orçado por linha para simular diferentes cenários. Pré-preenchido com a tendência do realizado.</span>
+      <button class="btn-reset" onclick="resetSimulador()">↺ Resetar tendência</button>
+      <button class="btn-simular" onclick="recalcSimulador()">▶ Recalcular</button>
+    </div>
+    <div class="kpis" id="kpi-sim" style="padding:16px 16px 0;grid-template-columns:repeat(5,1fr)"></div>
     <div class="tbl-outer">
-      <table id="tbl-ajustado">
-        <thead id="thead-ajustado"></thead>
-        <tbody id="tbody-ajustado"></tbody>
+      <table id="tbl-sim">
+        <thead id="thead-sim"></thead>
+        <tbody id="tbody-sim"></tbody>
       </table>
     </div>
   </div>
@@ -262,11 +270,11 @@ function filtrar(rows){
 }
 
 function somaReal(rows, linha, meses){
-  return rows.filter(r=>r.linha_dre===linha && r.mes_ano.startsWith('2026') && meses.includes(r.mes_ano.slice(5,7)))
+  return rows.filter(r=>r.linha_dre===linha && meses.includes(r.mes_ano.slice(5,7)))
     .reduce((s,r)=>s+r.realizado/100,0);
 }
 function somaOrc(rows, linha, meses){
-  return rows.filter(r=>r.linha_dre===linha && r.mes_ano.startsWith('2026') && meses.includes(r.mes_ano.slice(5,7)))
+  return rows.filter(r=>r.linha_dre===linha && meses.includes(r.mes_ano.slice(5,7)))
     .reduce((s,r)=>s+r.orcado/100,0);
 }
 
@@ -353,8 +361,6 @@ function renderForecast(){
   // ── KPIs ──
   const ah_rb=fmtAH(rb.total,rb.orig);
   const ah_eb=fmtAH(eb.total,eb.orig);
-  const sg=calc['SG&A'];
-  const ah_sg=fmtAH(sg.total,sg.orig);
   document.getElementById('kpi-area').innerHTML=`
     <div class="kpi">
       <div class="kpi-label">Receita Bruta Forecast</div>
@@ -372,11 +378,6 @@ function renderForecast(){
       <div class="kpi-sub kpi-${mb.total>=0?'up':'dn'}">${fmtAV(mb.total,rl.total)} da RL</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">SG&A Forecast</div>
-      <div class="kpi-value">${fmtM(sg.total)}</div>
-      <div class="kpi-sub kpi-${ah_sg.cls==='ah-pos'?'dn':'up'}">${ah_sg.txt} vs Orçado Original</div>
-    </div>
-    <div class="kpi">
       <div class="kpi-label">EBITDA Ajustado Forecast</div>
       <div class="kpi-value">${fmtM(eb.total)}</div>
       <div class="kpi-sub kpi-${ah_eb.cls==='ah-pos'?'up':'dn'}">${ah_eb.txt} vs Orçado Original</div>
@@ -385,28 +386,24 @@ function renderForecast(){
   // ── Thead ──
   const thead=document.getElementById('thead-forecast');
   thead.innerHTML=`
-    <colgroup>
-      <col style="width:310px">
-      <col style="width:90px"><col style="width:58px">
-      <col style="width:90px"><col style="width:58px">
-      <col style="width:90px"><col style="width:58px">
-      <col style="width:90px"><col style="width:58px">
-      <col style="width:72px">
-    </colgroup>
     <tr class="gr1">
       <th class="th-dre" rowspan="2">Linha DRE</th>
       <th class="th-real" colspan="2">${lReal}/26 — Realizado</th>
       <th class="th-orc"  colspan="2">${lOrc}/26 — Orçado</th>
       <th class="th-total" colspan="2">Forecast Total 2026</th>
       <th class="th-orig" colspan="2">Orçado Original 2026</th>
-      <th class="th-orig">AH%</th>
+      <th class="th-orig" style="background:#33691E">AH%</th>
     </tr>
     <tr class="gr2">
-      <th class="th-real">R$</th><th class="th-real">AV%</th>
-      <th class="th-orc">R$</th><th class="th-orc">AV%</th>
-      <th class="th-total">R$</th><th class="th-total">AV%</th>
-      <th class="th-orig">R$</th><th class="th-orig">AV%</th>
-      <th class="th-orig">Forecast vs Orç</th>
+      <th class="th-real">R$</th>
+      <th class="th-real">AV%</th>
+      <th class="th-orc">R$</th>
+      <th class="th-orc">AV%</th>
+      <th class="th-total">R$</th>
+      <th class="th-total">AV%</th>
+      <th class="th-orig">R$</th>
+      <th class="th-orig">AV%</th>
+      <th style="background:#33691E;color:rgba(255,255,255,.85);font-size:10px;padding:7px 10px;text-align:right">Forecast vs Orç</th>
     </tr>`;
 
   // Bases AV%
@@ -439,8 +436,8 @@ function renderForecast(){
     </tr>`;
   }).join('');
 
-  // ── Segunda tabela: Forecast Ajustado por Tendência ──
-  renderForecastAjustado(rows, mesesReal, mesesOrc);
+  // ── Simulador ──
+  renderSimulador(rows, mesesReal, mesesOrc);
 }
 
 function exportarCSV(){
@@ -453,24 +450,24 @@ function exportarCSV(){
   a.click();
 }
 
-// ── Forecast Ajustado por Tendência ──
-// Lógica: fator por linha = Real Jan-Abr ÷ Orç Jan-Abr
-// Forecast Mai-Dez = Orç Mai-Dez × fator (por linha)
-// Forecast Total   = Real Jan-Abr + Forecast Mai-Dez
-// Orç Total        = Orç Jan-Abr  + Orç Mai-Dez
-function renderForecastAjustado(rows, mesesReal, mesesOrc){
-  const lReal = mesesReal.length>0 ? `${NOM[parseInt(mesesReal[0])-1]}–${NOM[parseInt(mesesReal[mesesReal.length-1])-1]}` : 'Real';
-  const lOrc  = mesesOrc.length>0  ? `${NOM[parseInt(mesesOrc[0])-1]}–${NOM[parseInt(mesesOrc[mesesOrc.length-1])-1]}`  : 'Orç';
+// ── Simulador ──
+let _simContext = null; // guarda mesesReal, mesesOrc, rows para recalc
 
-  // ── Thead ──
-  const thead = document.getElementById('thead-ajustado');
+function renderSimulador(rows, mesesReal, mesesOrc){
+  _simContext = { rows, mesesReal, mesesOrc };
+
+  // Cabeçalho
+  const nReal = mesesReal.length, nOrc = mesesOrc.length;
+  const lReal = nReal>0 ? `${NOM[parseInt(mesesReal[0])-1]}–${NOM[parseInt(mesesReal[nReal-1])-1]}` : 'Real';
+  const lOrc  = nOrc>0  ? `${NOM[parseInt(mesesOrc[0])-1]}–${NOM[parseInt(mesesOrc[nOrc-1])-1]}`   : 'Orç';
+
+  const thead = document.getElementById('thead-sim');
   thead.innerHTML=`
     <colgroup>
       <col style="width:310px">
       <col style="width:90px">
       <col style="width:90px">
-      <col style="width:72px">
-      <col style="width:90px">
+      <col style="width:75px">
       <col style="width:90px">
       <col style="width:90px">
       <col style="width:90px">
@@ -479,9 +476,8 @@ function renderForecastAjustado(rows, mesesReal, mesesOrc){
     <tr class="gr1">
       <th class="th-dre" rowspan="2">Linha DRE</th>
       <th class="th-real">Real ${lReal}/26</th>
-      <th class="th-orc">Orç ${lReal}/26</th>
-      <th class="th-orc">AH%</th>
       <th class="th-orc">Orç ${lOrc}/26</th>
+      <th class="th-orc">% Simulado</th>
       <th class="th-total">Forecast ${lOrc}/26</th>
       <th class="th-total">Forecast Total</th>
       <th class="th-orig">Orç Total 2026</th>
@@ -490,92 +486,138 @@ function renderForecastAjustado(rows, mesesReal, mesesOrc){
     <tr class="gr2">
       <th class="th-real">R$</th>
       <th class="th-orc">R$</th>
-      <th class="th-orc">real/orç</th>
-      <th class="th-orc">R$</th>
+      <th class="th-orc">do orçado</th>
       <th class="th-total">R$</th>
       <th class="th-total">R$</th>
       <th class="th-orig">R$</th>
       <th class="th-orig">fcst/orç</th>
     </tr>`;
 
-  // ── Calcular todas as linhas ──
-  const calcAdj = {};
-  LINHAS.forEach(item => {
+  // Calcular fatores tendência como ponto de partida
+  const fatores = {};
+  LINHAS.forEach(item=>{
+    const realP = somaReal(rows, item.linha, mesesReal);
+    const orcP  = somaOrc (rows, item.linha, mesesReal);
+    fatores[item.linha] = (orcP !== 0) ? (realP / orcP * 100) : 100;
+  });
+
+  // Renderizar tbody com inputs
+  const tbody = document.getElementById('tbody-sim');
+  tbody.innerHTML = LINHAS.map(item=>{
     const realP = somaReal(rows, item.linha, mesesReal);
     const orcP  = somaOrc (rows, item.linha, mesesReal);
     const orcF  = somaOrc (rows, item.linha, mesesOrc);
-    const fator = (orcP !== 0) ? realP / orcP : 1;
-    const fcstF  = orcF * fator;
-    const fcstTot= realP + fcstF;
-    const orcTot = orcP  + orcF;
-    calcAdj[item.linha] = { realP, orcP, orcF, fator, fcstF, fcstTot, orcTot };
-  });
-
-  // ── KPIs ──
-  const aRB  = calcAdj['Receita Bruta'];
-  const aRL  = calcAdj['Receita Líquida'];
-  const aMB  = calcAdj['Lucro Bruto Ajustado'];
-  const aSGA = calcAdj['SG&A'];
-  const aEB  = calcAdj['EBITDA Ajustado'];
-
-  const ah_rb_adj  = fmtAH(aRB.fcstTot,  aRB.orcTot);
-  const ah_eb_adj  = fmtAH(aEB.fcstTot,  aEB.orcTot);
-  const ah_sga_adj = fmtAH(aSGA.fcstTot, aSGA.orcTot);
-
-  document.getElementById('kpi-ajustado').innerHTML=`
-    <div class="kpi">
-      <div class="kpi-label">Receita Bruta — Fcst Ajustado</div>
-      <div class="kpi-value">${fmtM(aRB.fcstTot)}</div>
-      <div class="kpi-sub kpi-${ah_rb_adj.cls==='ah-pos'?'up':'dn'}">${ah_rb_adj.txt} vs Orç Total</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Receita Líquida — Fcst Ajustado</div>
-      <div class="kpi-value">${fmtM(aRL.fcstTot)}</div>
-      <div class="kpi-sub">AV% ${fmtAV(aRL.fcstTot, aRB.fcstTot)} da RB</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Margem Bruta Ajustada — Fcst</div>
-      <div class="kpi-value">${fmtM(aMB.fcstTot)}</div>
-      <div class="kpi-sub kpi-${aMB.fcstTot>=0?'up':'dn'}">${fmtAV(aMB.fcstTot, aRL.fcstTot)} da RL</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">SG&A — Fcst Ajustado</div>
-      <div class="kpi-value">${fmtM(aSGA.fcstTot)}</div>
-      <div class="kpi-sub kpi-${ah_sga_adj.cls==='ah-pos'?'dn':'up'}">${ah_sga_adj.txt} vs Orç Total</div>
-    </div>
-    <div class="kpi" style="grid-column:span 1">
-      <div class="kpi-label">EBITDA Ajustado — Fcst</div>
-      <div class="kpi-value">${fmtM(aEB.fcstTot)}</div>
-      <div class="kpi-sub kpi-${ah_eb_adj.cls==='ah-pos'?'up':'dn'}">${ah_eb_adj.txt} vs Orç Total</div>
-    </div>`;
-
-  const rl_realP  = calcAdj['Receita Líquida'].realP || 1;
-  const rl_orcP   = calcAdj['Receita Líquida'].orcP  || 1;
-  const rl_orcF   = calcAdj['Receita Líquida'].orcF  || 1;
-  const rl_fcstTot= calcAdj['Receita Líquida'].fcstTot|| 1;
-  const rl_orcTot = calcAdj['Receita Líquida'].orcTot || 1;
-
-  const tbody = document.getElementById('tbody-ajustado');
-  tbody.innerHTML = LINHAS.map(item=>{
-    const v = calcAdj[item.linha];
-    const {realP, orcP, orcF, fcstF, fcstTot, orcTot} = v;
-
-    const ah1 = fmtAH(realP,   orcP);
-    const ah2 = fmtAH(fcstTot, orcTot);
-    const neg = (x) => x < 0 ? 'neg' : '';
-
-    return `<tr class="${item.cls}">
+    const orcTot= orcP + orcF;
+    const pct   = fatores[item.linha];
+    const fcstF = orcF * pct / 100;
+    const fcstTot = realP + fcstF;
+    const ah    = fmtAH(fcstTot, orcTot);
+    const neg   = v => v < 0 ? 'neg' : '';
+    const id    = 'sim_'+item.linha.replace(/[^a-zA-Z0-9]/g,'_');
+    return `<tr class="${item.cls}" id="simrow_${id}">
       <td>${item.linha}</td>
       <td class="${neg(realP)}">${fmtN(realP)}</td>
-      <td class="${neg(orcP)}">${fmtN(orcP)}</td>
-      <td class="${ah1.cls}">${ah1.txt}</td>
       <td class="${neg(orcF)}">${fmtN(orcF)}</td>
-      <td class="${neg(fcstF)}">${fmtN(fcstF)}</td>
-      <td class="${neg(fcstTot)}">${fmtN(fcstTot)}</td>
+      <td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.1" value="${pct.toFixed(1)}" onchange="recalcSimulador()"></td>
+      <td class="${neg(fcstF)}" id="${id}_fcstF">${fmtN(fcstF)}</td>
+      <td class="${neg(fcstTot)}" id="${id}_fcstTot">${fmtN(fcstTot)}</td>
       <td class="${neg(orcTot)}">${fmtN(orcTot)}</td>
-      <td class="${ah2.cls}">${ah2.txt}</td>
+      <td class="${ah.cls}" id="${id}_ah">${ah.txt}</td>
     </tr>`;
   }).join('');
+
+  _atualizarKpiSim();
+}
+
+function recalcSimulador(){
+  if(!_simContext) return;
+  const {rows, mesesReal, mesesOrc} = _simContext;
+  LINHAS.forEach(item=>{
+    const id    = 'sim_'+item.linha.replace(/[^a-zA-Z0-9]/g,'_');
+    const inp   = document.getElementById(id);
+    if(!inp) return;
+    const pct   = parseFloat(inp.value) || 100;
+    const realP = somaReal(rows, item.linha, mesesReal);
+    const orcP  = somaOrc (rows, item.linha, mesesReal);
+    const orcF  = somaOrc (rows, item.linha, mesesOrc);
+    const orcTot= orcP + orcF;
+    const fcstF = orcF * pct / 100;
+    const fcstTot = realP + fcstF;
+    const ah    = fmtAH(fcstTot, orcTot);
+    const neg   = v => v < 0 ? 'neg' : '';
+    const elF   = document.getElementById(id+'_fcstF');
+    const elT   = document.getElementById(id+'_fcstTot');
+    const elAH  = document.getElementById(id+'_ah');
+    if(elF)  { elF.textContent = fmtN(fcstF);  elF.className  = neg(fcstF); }
+    if(elT)  { elT.textContent = fmtN(fcstTot);elT.className  = neg(fcstTot); }
+    if(elAH) { elAH.textContent = ah.txt;       elAH.className = ah.cls; }
+  });
+  _atualizarKpiSim();
+}
+
+function resetSimulador(){
+  if(!_simContext) return;
+  const {rows, mesesReal, mesesOrc} = _simContext;
+  LINHAS.forEach(item=>{
+    const id  = 'sim_'+item.linha.replace(/[^a-zA-Z0-9]/g,'_');
+    const inp = document.getElementById(id);
+    if(!inp) return;
+    const realP = somaReal(rows, item.linha, mesesReal);
+    const orcP  = somaOrc (rows, item.linha, mesesReal);
+    inp.value = (orcP !== 0) ? (realP / orcP * 100).toFixed(1) : '100.0';
+  });
+  recalcSimulador();
+}
+
+function _getSimVal(linha){
+  if(!_simContext) return {realP:0,fcstTot:0,orcTot:0};
+  const {rows,mesesReal,mesesOrc}=_simContext;
+  const id  = 'sim_'+linha.replace(/[^a-zA-Z0-9]/g,'_');
+  const inp = document.getElementById(id);
+  const pct = inp ? parseFloat(inp.value)||100 : 100;
+  const realP = somaReal(rows,linha,mesesReal);
+  const orcP  = somaOrc (rows,linha,mesesReal);
+  const orcF  = somaOrc (rows,linha,mesesOrc);
+  const fcstTot = realP + orcF * pct/100;
+  const orcTot  = orcP + orcF;
+  return {realP, fcstTot, orcTot};
+}
+
+function _atualizarKpiSim(){
+  const rb  = _getSimVal('Receita Bruta');
+  const rl  = _getSimVal('Receita Líquida');
+  const mb  = _getSimVal('Lucro Bruto Ajustado');
+  const sga = _getSimVal('SG&A');
+  const eb  = _getSimVal('EBITDA Ajustado');
+  const ah_rb  = fmtAH(rb.fcstTot,  rb.orcTot);
+  const ah_eb  = fmtAH(eb.fcstTot,  eb.orcTot);
+  const ah_sga = fmtAH(sga.fcstTot, sga.orcTot);
+  document.getElementById('kpi-sim').innerHTML=`
+    <div class="kpi kpi-sim">
+      <div class="kpi-label">Receita Bruta — Simulado</div>
+      <div class="kpi-value">${fmtM(rb.fcstTot)}</div>
+      <div class="kpi-sub kpi-${ah_rb.cls==='ah-pos'?'up':'dn'}">${ah_rb.txt} vs Orç Total</div>
+    </div>
+    <div class="kpi kpi-sim">
+      <div class="kpi-label">Receita Líquida — Simulado</div>
+      <div class="kpi-value">${fmtM(rl.fcstTot)}</div>
+      <div class="kpi-sub">AV% ${fmtAV(rl.fcstTot, rb.fcstTot)} da RB</div>
+    </div>
+    <div class="kpi kpi-sim">
+      <div class="kpi-label">Margem Bruta Ajustada — Sim.</div>
+      <div class="kpi-value">${fmtM(mb.fcstTot)}</div>
+      <div class="kpi-sub kpi-${mb.fcstTot>=0?'up':'dn'}">${fmtAV(mb.fcstTot, rl.fcstTot)} da RL</div>
+    </div>
+    <div class="kpi kpi-sim">
+      <div class="kpi-label">SG&A — Simulado</div>
+      <div class="kpi-value">${fmtM(sga.fcstTot)}</div>
+      <div class="kpi-sub kpi-${ah_sga.cls==='ah-pos'?'dn':'up'}">${ah_sga.txt} vs Orç Total</div>
+    </div>
+    <div class="kpi kpi-sim">
+      <div class="kpi-label">EBITDA Ajustado — Simulado</div>
+      <div class="kpi-value">${fmtM(eb.fcstTot)}</div>
+      <div class="kpi-sub kpi-${ah_eb.cls==='ah-pos'?'up':'dn'}">${ah_eb.txt} vs Orç Total</div>
+    </div>`;
 }
 
 init();
