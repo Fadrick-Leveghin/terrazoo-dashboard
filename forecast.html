@@ -569,11 +569,11 @@ function exportarExcel(){
   const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   const styleMap={};const styleArr=[];
-  function sid(bg,fg,bold,halign){
-    const k=`${bg}|${fg}|${bold}|${halign}`;
+  function sid(bg,fg,bold,halign,fmt){
+    const k=`${bg}|${fg}|${bold}|${halign}|${fmt||''}`;
     if(styleMap[k])return styleMap[k];
     const id=60+styleArr.length;
-    styleArr.push({id,bg,fg,bold,halign});
+    styleArr.push({id,bg,fg,bold,halign,fmt:fmt||''});
     styleMap[k]=id;return id;
   }
   function rowStyle(cls){
@@ -619,11 +619,28 @@ function exportarExcel(){
         const s=sid(bg,fg,bold,halign);
         const inp=td.querySelector('input');
         const raw=inp?inp.value+'%':td.textContent.trim();
-        const n=parseFloat(raw.replace(/\./g,'').replace(',','.').replace(/[^0-9\.\-]/g,''));
-        if(!isNaN(n)&&i>0&&!raw.includes('%')&&!raw.includes('+')){
-          xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="Number">${n}</Data></Cell>`;
-        }else{
+        const isPct=raw.includes('%');
+        const isAH=raw.includes('+')||raw.startsWith('-');
+        if(i===0){
+          // coluna nome — sempre string
           xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
+        } else if(isPct){
+          // % simulado e AH% — exporta como número puro (sem símbolo %)
+          const pctVal=parseFloat(raw.replace('%','').replace(',','.').trim());
+          if(!isNaN(pctVal)){
+            xml+=`<Cell ss:StyleID="${sid(bg,fg,bold,halign,'pct')}"><Data ss:Type="Number">${(pctVal/100).toFixed(10)}</Data></Cell>`;
+          } else {
+            xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
+          }
+        } else {
+          // valores R$ — tenta número
+          const clean=raw.replace(/\./g,'').replace(',','.').replace(/[^0-9\.\-]/g,'');
+          const n=parseFloat(clean);
+          if(!isNaN(n)){
+            xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="Number">${n}</Data></Cell>`;
+          } else {
+            xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
+          }
         }
       });
       xml+='</Row>';
@@ -639,10 +656,12 @@ function exportarExcel(){
 
   let stylesXml=`<Style ss:ID="Default"><Alignment ss:Vertical="Center"/><Font ss:FontName="Calibri" ss:Size="11"/></Style>`;
   styleArr.forEach(s=>{
+    const fmt=s.fmt==='pct'?'<NumberFormat ss:Format="0.0%"/>':'';
     stylesXml+=`<Style ss:ID="${s.id}">
       <Alignment ss:Horizontal="${s.halign}" ss:Vertical="Center"/>
       <Interior ss:Color="#${s.bg}" ss:Pattern="Solid"/>
       <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="${s.bold?1:0}" ss:Color="#${s.fg}"/>
+      ${fmt}
     </Style>`;
   });
 
