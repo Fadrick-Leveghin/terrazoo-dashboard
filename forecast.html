@@ -364,8 +364,8 @@ function renderTendencia(rows,mesesReal,mesesOrc,lReal,lOrc){
 // ══════════════════════════════════════════
 // ③ SIMULADOR
 // ══════════════════════════════════════════
-// Totalizadores CALCULADOS — apenas LB, LBA, EBITDA, EBITDA Ajustado
-const TOTALIZADORES=new Set(['Lucro Bruto','Lucro Bruto Ajustado','EBITDA','EBITDA Ajustado']);
+// Totalizadores CALCULADOS — apenas EBITDA e EBITDA Ajustado
+const TOTALIZADORES=new Set(['EBITDA','EBITDA Ajustado']);
 
 // % do fator tendência por linha
 function _fatorTend(rows,l,mesesReal){
@@ -379,7 +379,6 @@ function _calcSim(){
   const{rows,mesesReal,mesesOrc}=_SC;
   const v={};
 
-  // Todas as linhas editáveis — inclui RB, RL, SGA com fator direto próprio
   LINHAS.forEach(({l})=>{
     if(TOTALIZADORES.has(l))return;
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
@@ -396,22 +395,10 @@ function _calcSim(){
   const ot=l=>v[l]?v[l].orcTot:0;
   const rP=l=>v[l]?v[l].realP:0;
 
-  // Lucro Bruto = Receita Líquida + CMV & CSP
-  const lb_f=ft('Receita Líquida')+ft('CMV & CSP');
-  const lb_o=ot('Receita Líquida')+ot('CMV & CSP');
-  const lb_r=rP('Receita Líquida')+rP('CMV & CSP');
-  v['Lucro Bruto']={realP:lb_r,orcTot:lb_o,fcstTot:lb_f,fcstF:lb_f-lb_r};
-
-  // Lucro Bruto Ajustado = Lucro Bruto + Verbas Comerciais
-  const lba_f=lb_f+ft('Verbas Comerciais');
-  const lba_o=lb_o+ot('Verbas Comerciais');
-  const lba_r=lb_r+rP('Verbas Comerciais');
-  v['Lucro Bruto Ajustado']={realP:lba_r,orcTot:lba_o,fcstTot:lba_f,fcstF:lba_f-lba_r};
-
-  // EBITDA = LBA + SGA (fator direto via input) + Outras
-  const ebt_f=lba_f+ft('SG&A')+ft('Outras Receitas/Despesas Operacionais');
-  const ebt_o=lba_o+ot('SG&A')+ot('Outras Receitas/Despesas Operacionais');
-  const ebt_r=lba_r+rP('SG&A')+rP('Outras Receitas/Despesas Operacionais');
+  // EBITDA = LBA + SGA + Outras (todos com fator direto via input)
+  const ebt_f=ft('Lucro Bruto Ajustado')+ft('SG&A')+ft('Outras Receitas/Despesas Operacionais');
+  const ebt_o=ot('Lucro Bruto Ajustado')+ot('SG&A')+ot('Outras Receitas/Despesas Operacionais');
+  const ebt_r=rP('Lucro Bruto Ajustado')+rP('SG&A')+rP('Outras Receitas/Despesas Operacionais');
   v['EBITDA']={realP:ebt_r,orcTot:ebt_o,fcstTot:ebt_f,fcstF:ebt_f-ebt_r};
 
   // EBITDA Ajustado = EBITDA + Resultados
@@ -420,7 +407,6 @@ function _calcSim(){
   const eba_r=ebt_r+rP('Resultados Não Recorentes');
   v['EBITDA Ajustado']={realP:eba_r,orcTot:eba_o,fcstTot:eba_f,fcstF:eba_f-eba_r};
 
-  // % desvio implícito para totalizadores calculados
   TOTALIZADORES.forEach(l=>{
     if(!v[l])return;
     const orcF_tot=somaOrc(rows,l,mesesOrc);
