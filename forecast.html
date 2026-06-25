@@ -210,8 +210,7 @@ const fmtAV=(v,b)=>b?(v/b*100).toFixed(1).replace('.',',')+' %':'-';
 function fmtAH(v,b){
   if(!b||b===0)return{txt:'-',cls:'ah-nt'};
   const p=(v-b)/Math.abs(b)*100;
-  const sinal=p>0?'+':p<0?'-':'';
-  return{txt:sinal+Math.abs(p).toFixed(1).replace('.',',')+' %',cls:p>0?'ah-pos':p<0?'ah-neg':'ah-nt'};
+  return{txt:(p>=0?'+':'')+p.toFixed(1).replace('.',',')+' %',cls:p>0?'ah-pos':p<0?'ah-neg':'ah-nt'};
 }
 const neg=v=>v<0?'neg':'';
 
@@ -359,24 +358,25 @@ function renderTendencia(rows,mesesReal,mesesOrc,lReal,lOrc){
 // ③ SIMULADOR
 // ══════════════════════════════════════════
 // Totalizadores CALCULADOS — apenas derivados aritméticos puros, igual ao Forecast ②
-const TOTALIZADORES=new Set(['Lucro Bruto','Lucro Bruto Ajustado','EBITDA','EBITDA Ajustado']);
+const TOTALIZADORES=new Set([
+  'Receita Bruta','Receita Líquida',
+  'Lucro Bruto','Lucro Bruto Ajustado',
+  'SG&A','EBITDA','EBITDA Ajustado'
+]);
 
-// % do fator tendência por linha (igual ao Forecast ②)
+// % do fator tendência por linha
 function _fatorTend(rows,l,mesesReal){
   const realP=somaReal(rows,l,mesesReal);
   const orcP =somaOrc(rows,l,mesesReal);
   return(orcP!==0)?(realP/orcP*100):100;
 }
 
-// Calcula todas as linhas do simulador
-// Editáveis: todas exceto LB, LBA, EBITDA, EBITDA Ajustado
-// Cada linha editável usa seu próprio % — idêntico ao Forecast ②
 function _calcSim(){
   if(!_SC)return{};
   const{rows,mesesReal,mesesOrc}=_SC;
   const v={};
 
-  // Linhas editáveis — cada uma com fator próprio (inclui RB, RL, SGA, subgrupos)
+  // Linhas editáveis — componentes analíticos
   LINHAS.forEach(({l})=>{
     if(TOTALIZADORES.has(l))return;
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
@@ -393,35 +393,57 @@ function _calcSim(){
   const ot=l=>v[l]?v[l].orcTot:0;
   const rP=l=>v[l]?v[l].realP:0;
 
+  // Receita Bruta = Revenda + Serviços + Ajuste Intercompany
+  const rb_f=ft('Receita com Revenda de Mercadorias')+ft('Receita com Serviços')+ft('Ajuste Intercompany');
+  const rb_o=ot('Receita com Revenda de Mercadorias')+ot('Receita com Serviços')+ot('Ajuste Intercompany');
+  const rb_r=rP('Receita com Revenda de Mercadorias')+rP('Receita com Serviços')+rP('Ajuste Intercompany');
+  v['Receita Bruta']={realP:rb_r,orcTot:rb_o,fcstTot:rb_f,fcstF:rb_f-rb_r};
+
+  // Receita Líquida = Receita Bruta + Impostos S/Vendas
+  const rl_f=rb_f+ft('Impostos S/ Vendas');
+  const rl_o=rb_o+ot('Impostos S/ Vendas');
+  const rl_r=rb_r+rP('Impostos S/ Vendas');
+  v['Receita Líquida']={realP:rl_r,orcTot:rl_o,fcstTot:rl_f,fcstF:rl_f-rl_r};
+
   // Lucro Bruto = Receita Líquida + CMV & CSP
-  const lb_f=ft('Receita Líquida')+ft('CMV & CSP');
-  const lb_o=ot('Receita Líquida')+ot('CMV & CSP');
-  const lb_r=rP('Receita Líquida')+rP('CMV & CSP');
+  const lb_f=rl_f+ft('CMV & CSP');
+  const lb_o=rl_o+ot('CMV & CSP');
+  const lb_r=rl_r+rP('CMV & CSP');
   v['Lucro Bruto']={realP:lb_r,orcTot:lb_o,fcstTot:lb_f,fcstF:lb_f-lb_r};
 
-  // Lucro Bruto Ajustado = Lucro Bruto + Verbas
+  // Lucro Bruto Ajustado = Lucro Bruto + Verbas Comerciais
   const lba_f=lb_f+ft('Verbas Comerciais');
   const lba_o=lb_o+ot('Verbas Comerciais');
   const lba_r=lb_r+rP('Verbas Comerciais');
   v['Lucro Bruto Ajustado']={realP:lba_r,orcTot:lba_o,fcstTot:lba_f,fcstF:lba_f-lba_r};
 
-  // EBITDA = LBA + SG&A (fator direto via input) + Outras
-  const ebt_f=lba_f+ft('SG&A')+ft('Outras Receitas/Despesas Operacionais');
-  const ebt_o=lba_o+ot('SG&A')+ot('Outras Receitas/Despesas Operacionais');
-  const ebt_r=lba_r+rP('SG&A')+rP('Outras Receitas/Despesas Operacionais');
+  // SG&A = soma dos subgrupos
+  const sgaL=['Comissões sobre Vendas','Gastos com Pessoal Comercial','Gastos com Pessoal - SG&A',
+    'Despesas Comerciais','Despesas com Distribuição','Despesas Administrativas',
+    'Despesas Tributárias','Aluguel'];
+  const sga_f=sgaL.reduce((s,l)=>s+ft(l),0);
+  const sga_o=sgaL.reduce((s,l)=>s+ot(l),0);
+  const sga_r=sgaL.reduce((s,l)=>s+rP(l),0);
+  v['SG&A']={realP:sga_r,orcTot:sga_o,fcstTot:sga_f,fcstF:sga_f-sga_r};
+
+  // EBITDA = LBA + SGA + Outras
+  const ebt_f=lba_f+sga_f+ft('Outras Receitas/Despesas Operacionais');
+  const ebt_o=lba_o+sga_o+ot('Outras Receitas/Despesas Operacionais');
+  const ebt_r=lba_r+sga_r+rP('Outras Receitas/Despesas Operacionais');
   v['EBITDA']={realP:ebt_r,orcTot:ebt_o,fcstTot:ebt_f,fcstF:ebt_f-ebt_r};
 
-  // EBITDA Ajustado = EBITDA + Resultados
+  // EBITDA Ajustado = EBITDA + Resultados Não Recorrentes
   const eba_f=ebt_f+ft('Resultados Não Recorentes');
   const eba_o=ebt_o+ot('Resultados Não Recorentes');
   const eba_r=ebt_r+rP('Resultados Não Recorentes');
   v['EBITDA Ajustado']={realP:eba_r,orcTot:eba_o,fcstTot:eba_f,fcstF:eba_f-eba_r};
 
-  // % implícito para totalizadores calculados (exibição)
+  // % implícito calculado para todos os totalizadores (exibição)
   TOTALIZADORES.forEach(l=>{
     if(!v[l])return;
-    const orcP_tot=somaOrc(rows,l,mesesReal);
-    v[l].pct=(orcP_tot!==0)?(v[l].realP/orcP_tot*100):null;
+    const orcF_tot=somaOrc(rows,l,mesesOrc);
+    v[l].pct=(orcF_tot!==0)?(v[l].fcstF/orcF_tot*100):null;
+    v[l].orcF=orcF_tot;
   });
 
   return v;
@@ -449,7 +471,7 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
     const orcF =somaOrc(rows,l,mesesOrc);
     const orcTot=orcP+orcF;
     const isTot=TOTALIZADORES.has(l);
-    // % = fcstF_tendencia ÷ orcF × 100 — garante que Simulador = Forecast ② sem edição
+    // % = fcstF_tendência ÷ orcF × 100 (garante Simulador = Forecast ② nos componentes)
     const fator=(orcP!==0)?realP/orcP:1;
     const fcstF_tend=orcF*fator;
     const pct=(orcF!==0)?(fcstF_tend/orcF*100):100;
@@ -458,8 +480,8 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
     const ah=fmtAH(fcstTot,orcTot);
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
     const pctCell=isTot
-      ? `<td style="text-align:right;color:var(--muted);font-size:11px;padding-right:10px" id="${id}_pct">${pct.toFixed(8)} %</td>`
-      : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.01" value="${pct.toFixed(8)}" onchange="recalcSim()"></td>`;
+      ? `<td style="text-align:right;color:var(--muted);font-size:11px;padding-right:10px" id="${id}_pct">${pct.toFixed(1)} %</td>`
+      : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.00000001" value="${pct.toFixed(8)}" onchange="recalcSim()"></td>`;
     return`<tr class="${c}"><td>${l}</td>
       <td class="${neg(realP)}">${fmtN(realP)}</td>
       <td class="${neg(orcF)}">${fmtN(orcF)}</td>
@@ -469,7 +491,6 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
       <td class="${neg(orcTot)}">${fmtN(orcTot)}</td>
       <td class="${ah.cls}" id="${id}_ah">${ah.txt}</td></tr>`;
   }).join('');
-  // Recalcula totalizadores a partir dos componentes
   recalcSim();
 }
 
@@ -486,7 +507,7 @@ function recalcSim(){
     if(eF){eF.textContent=fmtN(dat.fcstF);eF.className=neg(dat.fcstF);}
     if(eT){eT.textContent=fmtN(dat.fcstTot);eT.className=neg(dat.fcstTot);}
     if(eAH){const ah=fmtAH(dat.fcstTot,dat.orcTot);eAH.textContent=ah.txt;eAH.className=ah.cls;}
-    if(isTot&&ePct&&dat.pct!=null)ePct.textContent=dat.pct.toFixed(8)+' %';
+    if(isTot&&ePct&&dat.pct!=null)ePct.textContent=dat.pct.toFixed(1)+' %';
   });
   _recalcKpiSim();
 }
@@ -503,7 +524,7 @@ function resetSim(){
     const orcF =somaOrc(rows,l,mesesOrc);
     const fator=(orcP!==0)?realP/orcP:1;
     const fcstF_tend=orcF*fator;
-    inp.value=(orcF!==0)?(fcstF_tend/orcF*100).toFixed(8):'100.0';
+    inp.value=(orcF!==0)?(fcstF_tend/orcF*100).toFixed(8):'100.00000000';
   });
   recalcSim();
 }
@@ -569,11 +590,11 @@ function exportarExcel(){
   const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   const styleMap={};const styleArr=[];
-  function sid(bg,fg,bold,halign,fmt){
-    const k=`${bg}|${fg}|${bold}|${halign}|${fmt||''}`;
+  function sid(bg,fg,bold,halign){
+    const k=`${bg}|${fg}|${bold}|${halign}`;
     if(styleMap[k])return styleMap[k];
     const id=60+styleArr.length;
-    styleArr.push({id,bg,fg,bold,halign,fmt:fmt||''});
+    styleArr.push({id,bg,fg,bold,halign});
     styleMap[k]=id;return id;
   }
   function rowStyle(cls){
@@ -619,28 +640,11 @@ function exportarExcel(){
         const s=sid(bg,fg,bold,halign);
         const inp=td.querySelector('input');
         const raw=inp?inp.value+'%':td.textContent.trim();
-        const isPct=raw.includes('%');
-        const isAH=raw.includes('+')||raw.startsWith('-');
-        if(i===0){
-          // coluna nome — sempre string
+        const n=parseFloat(raw.replace(/\./g,'').replace(',','.').replace(/[^0-9\.\-]/g,''));
+        if(!isNaN(n)&&i>0&&!raw.includes('%')&&!raw.includes('+')){
+          xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="Number">${n}</Data></Cell>`;
+        }else{
           xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
-        } else if(isPct){
-          // % simulado e AH% — exporta como número puro (sem símbolo %)
-          const pctVal=parseFloat(raw.replace('%','').replace(',','.').trim());
-          if(!isNaN(pctVal)){
-            xml+=`<Cell ss:StyleID="${sid(bg,fg,bold,halign,'pct')}"><Data ss:Type="Number">${(pctVal/100).toFixed(10)}</Data></Cell>`;
-          } else {
-            xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
-          }
-        } else {
-          // valores R$ — tenta número
-          const clean=raw.replace(/\./g,'').replace(',','.').replace(/[^0-9\.\-]/g,'');
-          const n=parseFloat(clean);
-          if(!isNaN(n)){
-            xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="Number">${n}</Data></Cell>`;
-          } else {
-            xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
-          }
         }
       });
       xml+='</Row>';
@@ -656,12 +660,10 @@ function exportarExcel(){
 
   let stylesXml=`<Style ss:ID="Default"><Alignment ss:Vertical="Center"/><Font ss:FontName="Calibri" ss:Size="11"/></Style>`;
   styleArr.forEach(s=>{
-    const fmt=s.fmt==='pct'?'<NumberFormat ss:Format="0.0%"/>':'';
     stylesXml+=`<Style ss:ID="${s.id}">
       <Alignment ss:Horizontal="${s.halign}" ss:Vertical="Center"/>
       <Interior ss:Color="#${s.bg}" ss:Pattern="Solid"/>
       <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="${s.bold?1:0}" ss:Color="#${s.fg}"/>
-      ${fmt}
     </Style>`;
   });
 
