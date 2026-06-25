@@ -173,7 +173,7 @@ const LINHAS=[
   {l:'Ajuste Intercompany',                  c:'row-group'},
   {l:'Impostos S/ Vendas',                   c:'row-group'},
   {l:'Receita Líquida',                      c:'row-total'},
-  {l:'CMV & CSP',                            c:'row-group'},
+  {l:'CMV & CSP',                            c:'row-total'},
   {l:'Custo das Mercadorias Vendidas',       c:'row-group'},
   {l:'Ajuste Custo Intercompany',            c:'row-group'},
   {l:'Custo dos Serviços Prestados',         c:'row-group'},
@@ -381,11 +381,11 @@ function _calcSim(){
     if(TOTALIZADORES.has(l))return;
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
     const inp=document.getElementById(id);
-    const pct=inp?parseFloat(inp.value)||100:100;
+    const pct=inp?parseFloat(inp.value)||0:0;
     const realP=somaReal(rows,l,mesesReal);
     const orcP =somaOrc(rows,l,mesesReal);
     const orcF =somaOrc(rows,l,mesesOrc);
-    v[l]={realP,orcP,orcF,pct,fcstF:orcF*pct/100,orcTot:orcP+orcF};
+    v[l]={realP,orcP,orcF,pct,fcstF:orcF*(1+pct/100),orcTot:orcP+orcF};
     v[l].fcstTot=v[l].realP+v[l].fcstF;
   });
 
@@ -438,11 +438,11 @@ function _calcSim(){
   const eba_r=ebt_r+rP('Resultados Não Recorentes');
   v['EBITDA Ajustado']={realP:eba_r,orcTot:eba_o,fcstTot:eba_f,fcstF:eba_f-eba_r};
 
-  // % implícito calculado para todos os totalizadores (exibição)
+  // % desvio implícito para totalizadores calculados (exibição)
   TOTALIZADORES.forEach(l=>{
     if(!v[l])return;
     const orcF_tot=somaOrc(rows,l,mesesOrc);
-    v[l].pct=(orcF_tot!==0)?(v[l].fcstF/orcF_tot*100):null;
+    v[l].pct=(orcF_tot!==0)?((v[l].fcstF/orcF_tot)-1)*100:null;
     v[l].orcF=orcF_tot;
   });
 
@@ -455,7 +455,7 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
   buildThead('thead-sim',lReal,lOrc,[
     {label:`Real ${lReal}/26`,sub:'R$',cls:'th-real'},
     {label:`Orç ${lOrc}/26`,sub:'R$',cls:'th-orc'},
-    {label:'% Simulado',sub:'do orçado',cls:'th-orc'},
+    {label:'% Desvio',sub:'vs orçado',cls:'th-orc'},
     {label:`Forecast ${lOrc}/26`,sub:'R$',cls:'th-total'},
     {label:'Forecast Total',sub:'R$',cls:'th-total'},
     {label:'Orç Total 2026',sub:'R$',cls:'th-orig'},
@@ -471,17 +471,18 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
     const orcF =somaOrc(rows,l,mesesOrc);
     const orcTot=orcP+orcF;
     const isTot=TOTALIZADORES.has(l);
-    // % = fcstF_tendência ÷ orcF × 100 (garante Simulador = Forecast ② nos componentes)
+    // % desvio = (realP/orcP - 1) × 100  ex: -6,17% significa 6,17% abaixo do orçado
     const fator=(orcP!==0)?realP/orcP:1;
-    const fcstF_tend=orcF*fator;
-    const pct=(orcF!==0)?(fcstF_tend/orcF*100):100;
-    const fcstF=orcF*pct/100;
+    const desvio=(fator-1)*100;
+    const fcstF=orcF*(1+desvio/100);
     const fcstTot=realP+fcstF;
     const ah=fmtAH(fcstTot,orcTot);
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
+    // % implícito dos totalizadores = (fcstF/orcF - 1) × 100
+    const desvioTot=(orcF!==0)?((fcstF/orcF)-1)*100:0;
     const pctCell=isTot
-      ? `<td style="text-align:center;color:var(--muted);font-size:11px" id="${id}_pct">${pct.toFixed(1).replace('.',',')} %</td>`
-      : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.00000001" value="${pct.toFixed(8)}" onchange="recalcSim()"></td>`;
+      ? `<td style="text-align:center;color:var(--muted);font-size:11px" id="${id}_pct">${desvioTot.toFixed(1).replace('.',',')} %</td>`
+      : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.00000001" value="${desvio.toFixed(8)}" onchange="recalcSim()"></td>`;
     return`<tr class="${c}"><td>${l}</td>
       <td class="${neg(realP)}">${fmtN(realP)}</td>
       <td class="${neg(orcF)}">${fmtN(orcF)}</td>
@@ -523,8 +524,7 @@ function resetSim(){
     const orcP =somaOrc(rows,l,mesesReal);
     const orcF =somaOrc(rows,l,mesesOrc);
     const fator=(orcP!==0)?realP/orcP:1;
-    const fcstF_tend=orcF*fator;
-    inp.value=(orcF!==0)?(fcstF_tend/orcF*100).toFixed(8):'100.00000000';
+    inp.value=((fator-1)*100).toFixed(8);
   });
   recalcSim();
 }
@@ -590,11 +590,11 @@ function exportarExcel(){
   const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   const styleMap={};const styleArr=[];
-  function sid(bg,fg,bold,halign){
-    const k=`${bg}|${fg}|${bold}|${halign}`;
+  function sid(bg,fg,bold,halign,fmt){
+    const k=`${bg}|${fg}|${bold}|${halign}|${fmt||''}`;
     if(styleMap[k])return styleMap[k];
     const id=60+styleArr.length;
-    styleArr.push({id,bg,fg,bold,halign});
+    styleArr.push({id,bg,fg,bold,halign,fmt:fmt||''});
     styleMap[k]=id;return id;
   }
   function rowStyle(cls){
@@ -674,10 +674,12 @@ function exportarExcel(){
 
   let stylesXml=`<Style ss:ID="Default"><Alignment ss:Vertical="Center"/><Font ss:FontName="Calibri" ss:Size="11"/></Style>`;
   styleArr.forEach(s=>{
+    const fmt=s.fmt==='pct'?'<NumberFormat ss:Format="0.0%"/>':'';
     stylesXml+=`<Style ss:ID="${s.id}">
       <Alignment ss:Horizontal="${s.halign}" ss:Vertical="Center"/>
       <Interior ss:Color="#${s.bg}" ss:Pattern="Solid"/>
       <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="${s.bold?1:0}" ss:Color="#${s.fg}"/>
+      ${fmt}
     </Style>`;
   });
 
