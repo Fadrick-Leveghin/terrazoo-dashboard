@@ -477,11 +477,11 @@ function _calcSim(){
   // AV% de cada linha sobre a RL REALIZADA (Jan-Mai)
   const avReal=(l)=> (rlRealReal!==0)? (base[l].realP/rlRealReal) : 0;
 
-  // 4) Linhas variáveis: fcstF = RL_forecast × AV%_realizado (mantém participação histórica)
+  // 4) Linhas variáveis: fcstF = RL_forecast(orçado Jun-Dez ajustado) × AV%_realizado
   // 5) Linhas fixas: mantêm o ORÇADO Jun-Dez (não variam com faturamento)
   const VARIAVEIS=['Custo das Mercadorias Vendidas','Ajuste Custo Intercompany','Custo dos Serviços Prestados',
     'Verbas Comerciais','Comissões sobre Vendas','Despesas Comerciais','Despesas com Distribuição',
-    'Despesas Administrativas','Despesas Tributárias','Outras Receitas/Despesas Operacionais','Resultados Não Recorentes'];
+    'Despesas Administrativas','Despesas Tributárias','Outras Receitas/Despesas Operacionais'];
 
   VARIAVEIS.forEach(l=>{
     const b=base[l];
@@ -489,7 +489,8 @@ function _calcSim(){
     v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF,fcstTot:b.realP+fcstF,orcTot:b.orcTot};
   });
 
-  LINHAS_FIXAS.forEach(l=>{
+  // Fixas + Resultados Não Recorrentes (crédito tributário pleiteado, valor definido)
+  ['Gastos com Pessoal - SG&A','Gastos com Pessoal Comercial','Aluguel','Resultados Não Recorentes'].forEach(l=>{
     const b=base[l];
     v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF:b.orcF,fcstTot:b.realP+b.orcF,orcTot:b.orcTot};
   });
@@ -661,20 +662,26 @@ function renderSensibilidade(){
     return lba + sga + outTot;
   }
 
-  // Thead
+  // Thead — duas linhas: título do eixo MB e os valores de margem
   const thead=document.getElementById('thead-sens');
-  thead.innerHTML='<tr><th>Fat. \\ MB%</th>'+mbRange.map(mb=>`<th>${mb.toFixed(1).replace('.',',')}%</th>`).join('')+'</tr>';
+  thead.innerHTML=
+    `<tr><th rowspan="2" style="background:var(--v1)">Faturamento ↓ / Margem Bruta →</th>`+
+    `<th colspan="${mbRange.length}" style="background:var(--col-total)">Margem Bruta (% da Receita Líquida)</th></tr>`+
+    `<tr>`+mbRange.map(mb=>`<th>${mb.toFixed(1).replace('.',',')}%</th>`).join('')+`</tr>`;
 
-  // Tbody
+  // Tbody — cada linha mostra a variação % e a Receita Líquida resultante
   const tbody=document.getElementById('tbody-sens');
   tbody.innerHTML=fatRange.map(fat=>{
+    const rlCenario=rlTot*(1+fat/100);
     const cells=mbRange.map(mb=>{
       const e=ebitda(fat,mb);
       const isBase=(Math.abs(fat-fatBase)<0.001 && Math.abs(mb-mbBase)<0.001);
       const cls=isBase?'sens-base':(e>=0?'sens-pos':'sens-neg');
       return `<td class="${cls}">${(e/1e6).toFixed(1).replace('.',',')}</td>`;
     }).join('');
-    return `<tr><td class="sens-row-hdr">${(fat>=0?'+':'')+fat.toFixed(1).replace('.',',')}%</td>${cells}</tr>`;
+    const lblFat=`${(fat>=0?'+':'')+fat.toFixed(1).replace('.',',')}%`;
+    const lblRL=`RL ${(rlCenario/1e6).toFixed(1).replace('.',',')}M`;
+    return `<tr><td class="sens-row-hdr">${lblFat}<br><span style="font-size:10px;font-weight:400;opacity:.85">${lblRL}</span></td>${cells}</tr>`;
   }).join('');
 }
 
