@@ -180,20 +180,23 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
 
   <!-- ── MATRIZ DE APOIO ── -->
   <div class="tbl-wrap">
-    <div class="tbl-header"><div class="tbl-title">⑤ Matriz de Sensibilidade — EBITDA</div></div>
+    <div class="tbl-header"><div class="tbl-title">⑤ Matriz de Sensibilidade — EBITDA (Faturamento × Margem × SG&A)</div></div>
     <div class="sim-bar" style="flex-wrap:wrap;gap:18px">
-      <div class="sens-grp"><span class="sens-lbl">Cruzar</span>
-        <select id="mxTipo" class="sim-input" style="width:200px" onchange="renderMatriz()">
-          <option value="fat_mb">Faturamento × Margem Bruta</option>
-          <option value="fat_sga">Faturamento × SG&A</option>
-        </select>
-      </div>
-      <div class="filtro-sep"></div>
       <div class="sens-grp"><span class="sens-lbl">Passo Faturamento (pp)</span><input class="sim-input" id="mxFatStep" type="number" step="1" value="5" onchange="renderMatriz()"></div>
-      <div class="sens-grp"><span class="sens-lbl">Passo Coluna (pp)</span><input class="sim-input" id="mxColStep" type="number" step="0.5" value="1" onchange="renderMatriz()"></div>
+      <div class="sens-grp"><span class="sens-lbl">Passo Margem (pp)</span><input class="sim-input" id="mxColStep" type="number" step="0.5" value="1" onchange="renderMatriz()"></div>
+      <div class="filtro-sep"></div>
+      <div class="sens-grp"><span class="sens-lbl">Nível de SG&A (% da RL)</span><input class="sim-input" id="mxSga" type="number" step="0.5" onchange="renderMatriz()" style="width:100px"></div>
+      <div class="sens-grp"><span class="sens-lbl">Passo SG&A (pp)</span><input class="sim-input" id="mxSgaStep" type="number" step="0.5" value="1" onchange="renderMatriz()"></div>
+      <div class="sens-grp"><span class="sens-lbl">&nbsp;</span>
+        <div style="display:flex;gap:4px;align-items:center">
+          <button class="btn-rst" style="padding:4px 8px" onclick="mxSgaNav(-1)">◀</button>
+          <span id="mxSgaAtual" style="font-size:12px;font-weight:600;min-width:90px;text-align:center;color:var(--v1)"></span>
+          <button class="btn-rst" style="padding:4px 8px" onclick="mxSgaNav(1)">▶</button>
+        </div>
+      </div>
     </div>
     <div class="tbl-outer"><table id="tbl-sens"><thead id="thead-sens"></thead><tbody id="tbody-sens"></tbody></table></div>
-    <div style="padding:10px 18px;font-size:11px;color:var(--muted)">Valores em R$. Linhas = variação do faturamento sobre o simulador · Colunas = a variável escolhida · Célula = EBITDA. Célula destacada (âmbar) = cenário do simulador atual (0% / margem e SG&A correntes).</div>
+    <div style="padding:10px 18px;font-size:11px;color:var(--muted)">Valores em R$. Linhas = variação do faturamento · Colunas = Margem Bruta % · A matriz inteira reflete o <b>Nível de SG&A</b> selecionado acima (navegue com ◀ ▶ para ver outros níveis). Célula âmbar = cenário do simulador atual.</div>
   </div>
 </main>
 
@@ -690,29 +693,33 @@ function resetCenario(){
 function renderMatriz(){
   if(!_cenBase)return;
   const b=_cenBase;
-  const tipo=document.getElementById('mxTipo').value;
   const fatStep=parseFloat(document.getElementById('mxFatStep').value)||5;
   const colStep=parseFloat(document.getElementById('mxColStep').value)||1;
 
-  const fatRange=[-2,-1,0,1,2].map(i=>i*fatStep);             // variação faturamento (linhas)
-  const colBase = tipo==='fat_mb'? b.mbPct : b.sgaPct;        // base da coluna
-  const colRange=[-2,-1,0,1,2].map(i=>colBase+i*colStep);
-  const colLabel= tipo==='fat_mb'? 'Margem Bruta' : 'SG&A';
+  // Nível de SG&A: pré-preenche com o atual do simulador
+  const sgaInp=document.getElementById('mxSga');
+  if(sgaInp && sgaInp.value==='') sgaInp.value=b.sgaPct.toFixed(1);
+  const sgaNivel = sgaInp.value!==''?parseFloat(sgaInp.value):b.sgaPct;
+  // Atualiza o indicador de nível atual
+  const lbl=document.getElementById('mxSgaAtual');
+  if(lbl)lbl.textContent='SG&A '+sgaNivel.toFixed(1).replace('.',',')+'%';
+
+  const fatRange=[-2,-1,0,1,2].map(i=>i*fatStep);
+  const mbRange =[-2,-1,0,1,2].map(i=>b.mbPct+i*colStep);
 
   const thead=document.getElementById('thead-sens');
   thead.innerHTML=
-    `<tr><th rowspan="2" style="background:var(--v1)">Faturamento ↓ / ${colLabel} →</th>`+
-    `<th colspan="${colRange.length}" style="background:var(--col-total,#206A47)">${colLabel} (% da Receita Líquida)</th></tr>`+
-    `<tr>`+colRange.map(c=>`<th>${c.toFixed(1).replace('.',',')}%</th>`).join('')+`</tr>`;
+    `<tr><th rowspan="2" style="background:var(--v1)">Faturamento ↓ / Margem →<br><span style="font-size:10px;font-weight:400">(SG&A ${sgaNivel.toFixed(1).replace('.',',')}%)</span></th>`+
+    `<th colspan="${mbRange.length}" style="background:var(--col-total,#206A47)">Margem Bruta (% da Receita Líquida)</th></tr>`+
+    `<tr>`+mbRange.map(c=>`<th>${c.toFixed(1).replace('.',',')}%</th>`).join('')+`</tr>`;
 
   const tbody=document.getElementById('tbody-sens');
   tbody.innerHTML=fatRange.map(fat=>{
     const rlCen=b.rl*(1+fat/100);
-    const cells=colRange.map(cv=>{
-      let e;
-      if(tipo==='fat_mb') e=_ebitdaCenario(b,fat,cv,b.sgaPct);
-      else                e=_ebitdaCenario(b,fat,b.mbPct,cv);
-      const isBase=(Math.abs(fat)<0.001 && Math.abs(cv-colBase)<0.001);
+    const cells=mbRange.map(mb=>{
+      const e=_ebitdaCenario(b,fat,mb,sgaNivel);
+      // célula base: faturamento 0, margem = mbPct, sga = sgaPct atual
+      const isBase=(Math.abs(fat)<0.001 && Math.abs(mb-b.mbPct)<0.001 && Math.abs(sgaNivel-b.sgaPct)<0.001);
       const cls=isBase?'sens-base':(e>=0?'sens-pos':'sens-neg');
       return `<td class="${cls}">${fmtN(Math.round(e))}</td>`;
     }).join('');
@@ -720,6 +727,15 @@ function renderMatriz(){
     const lblRL=`RL ${(rlCen/1e6).toFixed(1).replace('.',',')}M`;
     return `<tr><td class="sens-row-hdr">${lblFat}<br><span style="font-size:10px;font-weight:400;opacity:.85">${lblRL}</span></td>${cells}</tr>`;
   }).join('');
+}
+
+// Navega o nível de SG&A pelo passo definido
+function mxSgaNav(dir){
+  const sgaInp=document.getElementById('mxSga');
+  const step=parseFloat(document.getElementById('mxSgaStep').value)||1;
+  const atual=sgaInp.value!==''?parseFloat(sgaInp.value):(_cenBase?_cenBase.sgaPct:0);
+  sgaInp.value=(atual+dir*step).toFixed(1);
+  renderMatriz();
 }
 
 // ══════════════════════════════════════════
