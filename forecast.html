@@ -480,7 +480,7 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
     const ah=fmtAH(fcstTot,orcTot);
     const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
     const pctCell=isTot
-      ? `<td style="text-align:right;color:var(--muted);font-size:11px;padding-right:10px" id="${id}_pct">${pct.toFixed(1)} %</td>`
+      ? `<td style="text-align:center;color:var(--muted);font-size:11px" id="${id}_pct">${pct.toFixed(1).replace('.',',')} %</td>`
       : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.00000001" value="${pct.toFixed(8)}" onchange="recalcSim()"></td>`;
     return`<tr class="${c}"><td>${l}</td>
       <td class="${neg(realP)}">${fmtN(realP)}</td>
@@ -507,7 +507,7 @@ function recalcSim(){
     if(eF){eF.textContent=fmtN(dat.fcstF);eF.className=neg(dat.fcstF);}
     if(eT){eT.textContent=fmtN(dat.fcstTot);eT.className=neg(dat.fcstTot);}
     if(eAH){const ah=fmtAH(dat.fcstTot,dat.orcTot);eAH.textContent=ah.txt;eAH.className=ah.cls;}
-    if(isTot&&ePct&&dat.pct!=null)ePct.textContent=dat.pct.toFixed(1)+' %';
+    if(isTot&&ePct&&dat.pct!=null)ePct.textContent=dat.pct.toFixed(1).replace('.',',')+' %';
   });
   _recalcKpiSim();
 }
@@ -637,14 +637,28 @@ function exportarExcel(){
       xml+=`<Row ss:Height="15">`;
       [...tr.querySelectorAll('td')].forEach((td,i)=>{
         const halign=i===0?'Left':'Right';
-        const s=sid(bg,fg,bold,halign);
         const inp=td.querySelector('input');
         const raw=inp?inp.value+'%':td.textContent.trim();
-        const n=parseFloat(raw.replace(/\./g,'').replace(',','.').replace(/[^0-9\.\-]/g,''));
-        if(!isNaN(n)&&i>0&&!raw.includes('%')&&!raw.includes('+')){
-          xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="Number">${n}</Data></Cell>`;
-        }else{
-          xml+=`<Cell ss:StyleID="${s}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
+        const isPct=raw.includes('%');
+        if(i===0){
+          xml+=`<Cell ss:StyleID="${sid(bg,fg,bold,'Left')}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
+        } else if(isPct){
+          // % → número puro dividido por 100, formato 0,0% no Excel
+          const pctVal=parseFloat(raw.replace('%','').replace(',','.').trim());
+          if(!isNaN(pctVal)){
+            xml+=`<Cell ss:StyleID="${sid(bg,fg,bold,'Right','pct')}"><Data ss:Type="Number">${(pctVal/100).toFixed(10)}</Data></Cell>`;
+          } else {
+            xml+=`<Cell ss:StyleID="${sid(bg,fg,bold,'Right')}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
+          }
+        } else {
+          // R$ → número inteiro
+          const clean=raw.replace(/\./g,'').replace(',','.').replace(/[^0-9\.\-]/g,'');
+          const n=parseFloat(clean);
+          if(!isNaN(n)){
+            xml+=`<Cell ss:StyleID="${sid(bg,fg,bold,'Right')}"><Data ss:Type="Number">${n}</Data></Cell>`;
+          } else {
+            xml+=`<Cell ss:StyleID="${sid(bg,fg,bold,'Right')}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
+          }
         }
       });
       xml+='</Row>';
