@@ -168,7 +168,7 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
 
   <!-- ── SENSIBILIDADE ── -->
   <div class="tbl-wrap">
-    <div class="tbl-header"><div class="tbl-title">④ Simulação de Cenário — EBITDA</div></div>
+    <div class="tbl-header"><div class="tbl-title">④ Simulação de Cenário — EBITDA Ajustado</div></div>
     <div class="sim-bar" style="flex-wrap:wrap;gap:18px">
       <div class="sens-grp"><span class="sens-lbl">Faturamento (variação %)</span><input class="sim-input" id="cFat" type="number" step="1" value="0" onchange="renderSensibilidade()" style="width:90px"></div>
       <div class="sens-grp"><span class="sens-lbl">Margem Bruta (% da RL)</span><input class="sim-input" id="cMb" type="number" step="0.5" onchange="renderSensibilidade()" style="width:90px"></div>
@@ -180,7 +180,7 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
 
   <!-- ── MATRIZ DE APOIO ── -->
   <div class="tbl-wrap">
-    <div class="tbl-header"><div class="tbl-title">⑤ Matriz de Sensibilidade — EBITDA (Faturamento × Margem × SG&A)</div></div>
+    <div class="tbl-header"><div class="tbl-title">⑤ Matriz de Sensibilidade — EBITDA Ajustado (Faturamento × Margem × SG&A)</div></div>
     <div class="sim-bar" style="flex-wrap:wrap;gap:18px">
       <div class="sens-grp"><span class="sens-lbl">Passo Faturamento (pp)</span><input class="sim-input" id="mxFatStep" type="number" step="1" value="5" onchange="renderMatriz()"></div>
       <div class="sens-grp"><span class="sens-lbl">Passo Margem (pp)</span><input class="sim-input" id="mxColStep" type="number" step="0.5" value="1" onchange="renderMatriz()"></div>
@@ -627,7 +627,7 @@ function _baseCenario(){
   const sga = cv['SG&A']?cv['SG&A'].fcstTot:0;
   const out = cv['Outras Receitas/Despesas Operacionais']?cv['Outras Receitas/Despesas Operacionais'].fcstTot:0;
   const res = cv['Resultados Não Recorentes']?cv['Resultados Não Recorentes'].fcstTot:0;
-  const ebt = cv['EBITDA']?cv['EBITDA'].fcstTot:0;
+  const ebt = cv['EBITDA Ajustado']?cv['EBITDA Ajustado'].fcstTot:0;
   // parte fixa do SG&A (não varia com faturamento)
   const fix = ['Gastos com Pessoal - SG&A','Gastos com Pessoal Comercial','Aluguel']
     .reduce((s,l)=>s+(cv[l]?cv[l].fcstTot:0),0);
@@ -641,14 +641,11 @@ function _baseCenario(){
 function _ebitdaCenario(b, fatPct, mbPct, sgaPct){
   const rl = b.rl*(1+fatPct/100);
   const lba = rl*(mbPct/100);
-  // SG&A = parte fixa (constante) + parte variável (acompanha receita)
-  // sgaPct é o SG&A total %; a parte fixa é constante, então:
-  // sga = fix + (rl × sgaVarPct/100) quando mantém estrutura;
-  // mas se o usuário muda sgaPct, recalculamos: variável = sgaPct_total − fix%base
-  const fixPctBase = b.rl!==0? (b.fix/b.rl*100):0;        // % fixa sobre RL base
-  const varPct = sgaPct - fixPctBase;                      // % variável implícito
+  const fixPctBase = b.rl!==0? (b.fix/b.rl*100):0;
+  const varPct = sgaPct - fixPctBase;
   const sga = b.fix + rl*(varPct/100);
-  return lba + sga + b.out;
+  // EBITDA Ajustado = LBA + SG&A + Outras + Resultados Não Recorrentes (fixo)
+  return lba + sga + b.out + b.res;
 }
 
 let _cenBase=null;
@@ -676,7 +673,7 @@ function renderSensibilidade(){
   buildKpis('kpi-cenario',[
     {label:'Receita Líquida',value:fmtM(rlCen),sub:`${(fat>=0?'+':'')+fat.toFixed(1).replace('.',',')}% vs simulador`,subCls:fat>=0?'kpi-up':'kpi-dn'},
     {label:'Lucro Bruto Ajustado',value:fmtM(lbaCen),sub:`Margem ${mb.toFixed(1).replace('.',',')}% da RL`},
-    {label:'EBITDA do Cenário',value:fmtM(ebtCen),sub:`SG&A ${sga.toFixed(1).replace('.',',')}% da RL`,subCls:ebtCen>=0?'kpi-up':'kpi-dn'},
+    {label:'EBITDA Ajustado do Cenário',value:fmtM(ebtCen),sub:`SG&A ${sga.toFixed(1).replace('.',',')}% da RL`,subCls:ebtCen>=0?'kpi-up':'kpi-dn'},
     {label:'Δ vs Simulador',value:(delta>=0?'+':'')+fmtM(delta),sub:b.ebt!==0?`${(delta/Math.abs(b.ebt)*100).toFixed(1).replace('.',',')}%`:'-',subCls:delta>=0?'kpi-up':'kpi-dn'},
   ]);
   renderMatriz();
