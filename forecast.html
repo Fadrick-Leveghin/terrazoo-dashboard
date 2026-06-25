@@ -80,12 +80,20 @@ tr.row-total    td.ah-pos,tr.row-total    td.ah-neg{color:#fff!important}
 tr.row-subtotal td.ah-pos,tr.row-subtotal td.ah-neg{color:#fff!important}
 /* SIMULADOR */
 .sim-input{width:60px;border:1px solid var(--borda);border-radius:4px;padding:3px 5px;font-size:11px;font-family:inherit;text-align:right;background:#fff;color:var(--txt)}
-.sim-tot{font-weight:700;border-style:dashed}
 .sim-input:focus{outline:none;border-color:var(--v3)}
 tr.row-total .sim-input,tr.row-subtotal .sim-input{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff}
 tr.row-highlight .sim-input{background:rgba(255,255,255,.6)}
 .sim-bar{display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--borda);background:#f8fdf8}
 .sim-bar-lbl{font-size:11px;color:var(--muted);flex:1}
+.sens-grp{display:flex;flex-direction:column;gap:3px}
+.sens-lbl{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+#tbl-sens{width:100%;border-collapse:collapse}
+#tbl-sens td,#tbl-sens th{text-align:center;padding:8px 10px;font-size:12px;border:1px solid var(--borda)}
+#tbl-sens thead th{background:var(--v1);color:#fff;font-weight:600}
+#tbl-sens .sens-row-hdr{background:var(--v2);color:#fff;font-weight:600}
+#tbl-sens .sens-base{background:var(--amber);color:#1a2e1f;font-weight:700;outline:2px solid var(--v1)}
+#tbl-sens .sens-pos{background:#e8f5e9}
+#tbl-sens .sens-neg{background:#fff3f3;color:var(--red)}
 .btn-sim{font-size:12px;color:#fff;background:var(--v2);border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600}
 .btn-rst{font-size:12px;color:var(--v2);background:none;border:1px solid var(--borda);padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit}
 footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:40px}
@@ -146,13 +154,32 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
 
   <!-- ── SIMULADOR ── -->
   <div class="tbl-wrap">
-    <div class="tbl-header"><div class="tbl-title">③ Simulador — Ajuste % do Orçado por Linha</div></div>
+    <div class="tbl-header"><div class="tbl-title">③ Simulador — Indexador de Faturamento</div></div>
     <div class="sim-bar">
-      <span class="sim-bar-lbl">% pré-preenchido com a tendência. Edite por linha — recálculo automático.</span>
+      <span class="sim-bar-lbl">Ajuste o faturamento e as demais linhas recalculam pela participação (AV%) do realizado. Custos com pessoal e aluguel são mantidos fixos.</span>
+      <span style="font-size:12px;font-weight:600;color:var(--muted)">Indexador Faturamento:</span>
+      <input class="sim-input" id="idxFat" type="number" step="0.5" value="0" onchange="recalcSim()" style="width:80px">
+      <span style="font-size:12px;color:var(--muted)">%</span>
       <button class="btn-rst" onclick="resetSim()">↺ Resetar</button>
     </div>
     <div class="kpis" id="kpi-sim" style="grid-template-columns:repeat(6,1fr)"></div>
     <div class="tbl-outer"><table><thead id="thead-sim"></thead><tbody id="tbody-sim"></tbody></table></div>
+  </div>
+
+  <!-- ── SENSIBILIDADE ── -->
+  <div class="tbl-wrap">
+    <div class="tbl-header"><div class="tbl-title">④ Análise de Sensibilidade — EBITDA (Faturamento × Margem Bruta)</div></div>
+    <div class="sim-bar" style="flex-wrap:wrap;gap:16px">
+      <div class="sens-grp"><span class="sens-lbl">Faturamento base %</span><input class="sim-input" id="sFatBase" type="number" step="1" value="0" onchange="renderSensibilidade()"></div>
+      <div class="sens-grp"><span class="sens-lbl">Passo Fat. (pp)</span><input class="sim-input" id="sFatStep" type="number" step="1" value="5" onchange="renderSensibilidade()"></div>
+      <div class="filtro-sep"></div>
+      <div class="sens-grp"><span class="sens-lbl">Margem Bruta base %</span><input class="sim-input" id="sMbBase" type="number" step="0.5" value="0" onchange="renderSensibilidade()" placeholder="auto"></div>
+      <div class="sens-grp"><span class="sens-lbl">Passo MB (pp)</span><input class="sim-input" id="sMbStep" type="number" step="0.5" value="1" onchange="renderSensibilidade()"></div>
+      <div class="filtro-sep"></div>
+      <div class="sens-grp"><span class="sens-lbl">SG&A % da RL</span><input class="sim-input" id="sSga" type="number" step="0.5" value="0" onchange="renderSensibilidade()" placeholder="auto" style="width:80px"></div>
+    </div>
+    <div class="tbl-outer"><table id="tbl-sens"><thead id="thead-sens"></thead><tbody id="tbody-sens"></tbody></table></div>
+    <div style="padding:10px 18px;font-size:11px;color:var(--muted)">Valores em R$ milhões. Linhas = variação do faturamento · Colunas = margem bruta % sobre Receita Líquida · Célula = EBITDA projetado (ano completo). Célula destacada = cenário base.</div>
   </div>
 </main>
 
@@ -375,148 +402,144 @@ function renderTendencia(rows,mesesReal,mesesOrc,lReal,lOrc){
 }
 
 // ══════════════════════════════════════════
-// ③ SIMULADOR
+// ③ SIMULADOR — Indexador de Faturamento
 // ══════════════════════════════════════════
-// Totalizadores CALCULADOS — apenas EBITDA e EBITDA Ajustado
-const TOTALIZADORES=new Set([
-  'Receita Bruta','Receita Líquida','Lucro Bruto','Lucro Bruto Ajustado',
-  'SG&A','EBITDA','EBITDA Ajustado'
-]);
+// Linhas de faturamento (recebem o indexador)
+const LINHAS_FAT=['Receita com Revenda de Mercadorias','Receita com Serviços','Ajuste Intercompany'];
+// Despesas FIXAS — mantêm valor da tendência, não variam com faturamento
+const LINHAS_FIXAS=new Set(['Gastos com Pessoal - SG&A','Gastos com Pessoal Comercial','Aluguel']);
+// Totalizadores calculados por soma
+const SIM_TOT=new Set(['Receita Bruta','Receita Líquida','CMV & CSP','Lucro Bruto','Lucro Bruto Ajustado','SG&A','EBITDA','EBITDA Ajustado']);
 
-// Composição pai -> filhas (para cascata e detecção de edição)
-const COMPOSICAO={
-  'Receita Bruta':['Receita com Revenda de Mercadorias','Receita com Serviços','Ajuste Intercompany'],
-  'Receita Líquida':['Receita Bruta','Impostos S/ Vendas'],
-  'CMV & CSP':['Custo das Mercadorias Vendidas','Ajuste Custo Intercompany','Custo dos Serviços Prestados'],
-  'Lucro Bruto':['Receita Líquida','CMV & CSP'],
-  'Lucro Bruto Ajustado':['Lucro Bruto','Verbas Comerciais'],
-  'SG&A':['Comissões sobre Vendas','Gastos com Pessoal Comercial','Gastos com Pessoal - SG&A',
-          'Despesas Comerciais','Despesas com Distribuição','Despesas Administrativas',
-          'Despesas Tributárias','Aluguel'],
-  'EBITDA':['Lucro Bruto Ajustado','SG&A','Outras Receitas/Despesas Operacionais'],
-  'EBITDA Ajustado':['EBITDA','Resultados Não Recorentes'],
-};
-// Override manual de % por totalizador (null = usar cálculo por soma)
-let _override={};
+let _SC=null;
 
-// % do fator tendência por linha
-function _fatorTend(rows,l,mesesReal){
-  const realP=somaReal(rows,l,mesesReal);
-  const orcP =somaOrc(rows,l,mesesReal);
-  return(orcP!==0)?((realP/orcP)-1)*100:0;
-}
-
-function _calcSim(){
-  if(!_SC)return{};
-  const{rows,mesesReal,mesesOrc}=_SC;
-  const v={};
-
-  // Contas filhas (não totalizadores) — sempre pelo input
+// Base tendência por linha (fcstTot, realP, orcTot) + AV% sobre RL realizada
+function _baseTendencia(rows,mesesReal,mesesOrc){
+  const base={};
   LINHAS.forEach(({l})=>{
-    if(TOTALIZADORES.has(l))return;
-    const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
-    const inp=document.getElementById(id);
-    const pct=inp?parseFloat(inp.value)||0:0;
     const realP=somaReal(rows,l,mesesReal);
     const orcP =somaOrc(rows,l,mesesReal);
     const orcF =somaOrc(rows,l,mesesOrc);
-    v[l]={realP,orcP,orcF,pct,fcstF:orcF*(1+pct/100),orcTot:orcP+orcF};
-    v[l].fcstTot=v[l].realP+v[l].fcstF;
+    const fator=(orcP!==0)?realP/orcP:1;
+    const fcstF=orcF*fator;
+    base[l]={realP,orcP,orcF,fcstF,fcstTot:realP+fcstF,orcTot:orcP+orcF};
+  });
+  // EBITDA e EBITDA Aj por componentes (consistente com Tendência)
+  const cmp=(comps)=>{
+    let f=0,r=0,o=0,oF=0;
+    comps.forEach(c=>{f+=base[c].fcstF;r+=base[c].realP;o+=base[c].orcTot;oF+=base[c].orcF;});
+    return {f,r,o,oF};
+  };
+  // recompõe RB, RL, CMV, LB, LBA, SGA, EBITDA por soma para garantir consistência
+  return base;
+}
+
+// Calcula o simulador a partir do indexador de faturamento
+function _calcSim(){
+  if(!_SC)return{};
+  const{rows,mesesReal,mesesOrc}=_SC;
+  const idx=parseFloat(document.getElementById('idxFat')?.value)||0; // % indexador
+  const base=_baseTendencia(rows,mesesReal,mesesOrc);
+  const v={};
+
+  // RL realizada = base de AV%
+  const rlRealReal = base['Receita Líquida'] ? base['Receita Líquida'].realP : 0;
+
+  // 1) Linhas de faturamento: aplica indexador sobre o forecast da tendência
+  LINHAS_FAT.forEach(l=>{
+    const b=base[l];
+    const fcstF=b.fcstF*(1+idx/100);
+    v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF,fcstTot:b.realP+fcstF,orcTot:b.orcTot};
   });
 
-  const ft=l=>v[l]?v[l].fcstTot:0;
-  const ot=l=>v[l]?v[l].orcTot:0;
-  const rP=l=>v[l]?v[l].realP:0;
+  // helper de acesso
+  const ft=l=>v[l]?v[l].fcstTot:(base[l]?base[l].fcstTot:0);
+  const ff=l=>v[l]?v[l].fcstF:(base[l]?base[l].fcstF:0);
+  const ot=l=>base[l]?base[l].orcTot:0;
+  const rP=l=>base[l]?base[l].realP:0;
+  const of_=l=>base[l]?base[l].orcF:0;
 
-  // Totalizador: se tem override manual usa o %, senão soma das filhas
-  // Ordem importa (cascata bottom-up): RB, RL, CMV, LB, LBA, SG&A, EBITDA, EBITDA Aj
-  function calcTot(nome, somaF){
-    const realP=somaReal(rows,nome,mesesReal);
-    const orcP =somaOrc(rows,nome,mesesReal);
-    const orcF =somaOrc(rows,nome,mesesOrc);
-    const orcTot=orcP+orcF;
-    if(_override[nome]!=null){
-      // pai editado manualmente: fcstF = orcF × (1 + override/100)
-      const fcstF=orcF*(1+_override[nome]/100);
-      v[nome]={realP,orcP,orcF,pct:_override[nome],fcstF,fcstTot:realP+fcstF,orcTot};
-    } else {
-      // calculado pela soma das filhas
-      v[nome]={realP:somaF.r,orcP,orcF:somaF.oF,fcstF:somaF.f-somaF.r,fcstTot:somaF.f,orcTot:somaF.o};
-    }
-  }
+  // 2) Receita Bruta = soma faturamento
+  const rb_f=ff('Receita com Revenda de Mercadorias')+ff('Receita com Serviços')+ff('Ajuste Intercompany');
+  v['Receita Bruta']={realP:rP('Receita Bruta'),orcP:base['Receita Bruta'].orcP,orcF:of_('Receita Bruta'),fcstF:rb_f,fcstTot:rP('Receita Bruta')+rb_f,orcTot:ot('Receita Bruta')};
 
-  // Receita Bruta
-  calcTot('Receita Bruta',{
-    f:ft('Receita com Revenda de Mercadorias')+ft('Receita com Serviços')+ft('Ajuste Intercompany'),
-    r:rP('Receita com Revenda de Mercadorias')+rP('Receita com Serviços')+rP('Ajuste Intercompany'),
-    o:ot('Receita com Revenda de Mercadorias')+ot('Receita com Serviços')+ot('Ajuste Intercompany'),
-    oF:somaOrc(rows,'Receita Bruta',mesesOrc),
+  // 3) Receita Líquida projetada (= RB + Impostos). Impostos variam com faturamento (AV%)
+  // Forecast RL = soma. Mas precisamos da RL projetada para aplicar AV% nas demais linhas.
+  // Impostos: recalcula pela AV% do realizado sobre a RB? Usamos proporção do forecast tendência escalada pelo indexador.
+  // Como Impostos acompanha receita, escala junto:
+  const imp_b=base['Impostos S/ Vendas'];
+  const imp_f=imp_b.fcstF*(1+idx/100);
+  v['Impostos S/ Vendas']={realP:imp_b.realP,orcP:imp_b.orcP,orcF:imp_b.orcF,fcstF:imp_f,fcstTot:imp_b.realP+imp_f,orcTot:imp_b.orcTot};
+
+  const rl_f=rb_f+imp_f;
+  const rl_real=rP('Receita Bruta')+imp_b.realP;
+  v['Receita Líquida']={realP:rl_real,orcP:base['Receita Líquida'].orcP,orcF:of_('Receita Líquida'),fcstF:rl_f,fcstTot:rl_real+rl_f,orcTot:ot('Receita Líquida')};
+
+  // RL forecast (Jun-Dez) — base para AV% das demais linhas variáveis
+  const rlFcstF = rl_f;
+  // AV% de cada linha sobre a RL REALIZADA (Jan-Mai)
+  const avReal=(l)=> (rlRealReal!==0)? (base[l].realP/rlRealReal) : 0;
+
+  // 4) Linhas variáveis (exceto fixas e faturamento): fcstF = RL_forecast × AV%_realizado
+  // 5) Linhas fixas: mantêm fcstF da tendência
+  const VARIAVEIS=['Custo das Mercadorias Vendidas','Ajuste Custo Intercompany','Custo dos Serviços Prestados',
+    'Verbas Comerciais','Comissões sobre Vendas','Despesas Comerciais','Despesas com Distribuição',
+    'Despesas Administrativas','Despesas Tributárias','Outras Receitas/Despesas Operacionais','Resultados Não Recorentes'];
+
+  VARIAVEIS.forEach(l=>{
+    const b=base[l];
+    const fcstF=rlFcstF*avReal(l);
+    v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF,fcstTot:b.realP+fcstF,orcTot:b.orcTot};
   });
-  // Receita Líquida = RB + Impostos
-  calcTot('Receita Líquida',{
-    f:ft('Receita Bruta')+ft('Impostos S/ Vendas'),
-    r:rP('Receita Bruta')+rP('Impostos S/ Vendas'),
-    o:ot('Receita Bruta')+ot('Impostos S/ Vendas'),
-    oF:somaOrc(rows,'Receita Líquida',mesesOrc),
+
+  LINHAS_FIXAS.forEach(l=>{
+    const b=base[l];
+    v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF:b.fcstF,fcstTot:b.fcstTot,orcTot:b.orcTot};
   });
-  // CMV & CSP = filhas
-  calcTot('CMV & CSP',{
-    f:ft('Custo das Mercadorias Vendidas')+ft('Ajuste Custo Intercompany')+ft('Custo dos Serviços Prestados'),
-    r:rP('Custo das Mercadorias Vendidas')+rP('Ajuste Custo Intercompany')+rP('Custo dos Serviços Prestados'),
-    o:ot('Custo das Mercadorias Vendidas')+ot('Ajuste Custo Intercompany')+ot('Custo dos Serviços Prestados'),
-    oF:somaOrc(rows,'CMV & CSP',mesesOrc),
-  });
+
+  // 6) Totalizadores por soma
+  const ff2=l=>v[l]?v[l].fcstF:0;
+  const ft2=l=>v[l]?v[l].fcstTot:0;
+  const rP2=l=>v[l]?v[l].realP:0;
+  const ot2=l=>v[l]?v[l].orcTot:0;
+
+  // CMV & CSP
+  const cmv_f=ff2('Custo das Mercadorias Vendidas')+ff2('Ajuste Custo Intercompany')+ff2('Custo dos Serviços Prestados');
+  const cmv_r=rP2('Custo das Mercadorias Vendidas')+rP2('Ajuste Custo Intercompany')+rP2('Custo dos Serviços Prestados');
+  const cmv_o=ot2('Custo das Mercadorias Vendidas')+ot2('Ajuste Custo Intercompany')+ot2('Custo dos Serviços Prestados');
+  v['CMV & CSP']={realP:cmv_r,orcTot:cmv_o,fcstF:cmv_f,fcstTot:cmv_r+cmv_f,orcF:of_('CMV & CSP'),orcP:base['CMV & CSP'].orcP};
+
   // Lucro Bruto = RL + CMV
-  calcTot('Lucro Bruto',{
-    f:ft('Receita Líquida')+ft('CMV & CSP'),
-    r:rP('Receita Líquida')+rP('CMV & CSP'),
-    o:ot('Receita Líquida')+ot('CMV & CSP'),
-    oF:somaOrc(rows,'Lucro Bruto',mesesOrc),
-  });
-  // Lucro Bruto Ajustado = LB + Verbas
-  calcTot('Lucro Bruto Ajustado',{
-    f:ft('Lucro Bruto')+ft('Verbas Comerciais'),
-    r:rP('Lucro Bruto')+rP('Verbas Comerciais'),
-    o:ot('Lucro Bruto')+ot('Verbas Comerciais'),
-    oF:somaOrc(rows,'Lucro Bruto Ajustado',mesesOrc),
-  });
-  // SG&A = subgrupos
-  const sgaL=['Comissões sobre Vendas','Gastos com Pessoal Comercial','Gastos com Pessoal - SG&A',
-    'Despesas Comerciais','Despesas com Distribuição','Despesas Administrativas',
-    'Despesas Tributárias','Aluguel'];
-  calcTot('SG&A',{
-    f:sgaL.reduce((s,l)=>s+ft(l),0),
-    r:sgaL.reduce((s,l)=>s+rP(l),0),
-    o:sgaL.reduce((s,l)=>s+ot(l),0),
-    oF:somaOrc(rows,'SG&A',mesesOrc),
-  });
-  // EBITDA = LBA + SGA + Outras
-  calcTot('EBITDA',{
-    f:ft('Lucro Bruto Ajustado')+ft('SG&A')+ft('Outras Receitas/Despesas Operacionais'),
-    r:rP('Lucro Bruto Ajustado')+rP('SG&A')+rP('Outras Receitas/Despesas Operacionais'),
-    o:ot('Lucro Bruto Ajustado')+ot('SG&A')+ot('Outras Receitas/Despesas Operacionais'),
-    oF:somaOrc(rows,'EBITDA',mesesOrc),
-  });
-  // EBITDA Ajustado = EBITDA + Resultados
-  calcTot('EBITDA Ajustado',{
-    f:ft('EBITDA')+ft('Resultados Não Recorentes'),
-    r:rP('EBITDA')+rP('Resultados Não Recorentes'),
-    o:ot('EBITDA')+ot('Resultados Não Recorentes'),
-    oF:somaOrc(rows,'EBITDA Ajustado',mesesOrc),
-  });
+  const lb_f=rl_f+cmv_f, lb_r=rl_real+cmv_r, lb_o=ot('Receita Líquida')+cmv_o;
+  v['Lucro Bruto']={realP:lb_r,orcTot:lb_o,fcstF:lb_f,fcstTot:lb_r+lb_f,orcF:of_('Lucro Bruto'),orcP:base['Lucro Bruto'].orcP};
 
-  // % desvio implícito para totalizadores
-  TOTALIZADORES.forEach(l=>{
-    if(!v[l])return;
-    const orcF_tot=somaOrc(rows,l,mesesOrc);
-    v[l].pct=(orcF_tot!==0)?((v[l].fcstF/orcF_tot)-1)*100:null;
-    v[l].orcF=orcF_tot;
-  });
+  // LBA = LB + Verbas
+  const lba_f=lb_f+ff2('Verbas Comerciais'), lba_r=lb_r+rP2('Verbas Comerciais'), lba_o=lb_o+ot2('Verbas Comerciais');
+  v['Lucro Bruto Ajustado']={realP:lba_r,orcTot:lba_o,fcstF:lba_f,fcstTot:lba_r+lba_f,orcF:of_('Lucro Bruto Ajustado'),orcP:base['Lucro Bruto Ajustado'].orcP};
+
+  // SG&A = soma subgrupos
+  const sgaL=['Comissões sobre Vendas','Gastos com Pessoal Comercial','Gastos com Pessoal - SG&A',
+    'Despesas Comerciais','Despesas com Distribuição','Despesas Administrativas','Despesas Tributárias','Aluguel'];
+  const sga_f=sgaL.reduce((s,l)=>s+ff2(l),0);
+  const sga_r=sgaL.reduce((s,l)=>s+rP2(l),0);
+  const sga_o=sgaL.reduce((s,l)=>s+ot2(l),0);
+  v['SG&A']={realP:sga_r,orcTot:sga_o,fcstF:sga_f,fcstTot:sga_r+sga_f,orcF:of_('SG&A'),orcP:base['SG&A'].orcP};
+
+  // EBITDA = LBA + SGA + Outras
+  const ebt_f=lba_f+sga_f+ff2('Outras Receitas/Despesas Operacionais');
+  const ebt_r=lba_r+sga_r+rP2('Outras Receitas/Despesas Operacionais');
+  const ebt_o=lba_o+sga_o+ot2('Outras Receitas/Despesas Operacionais');
+  v['EBITDA']={realP:ebt_r,orcTot:ebt_o,fcstF:ebt_f,fcstTot:ebt_r+ebt_f,orcF:of_('EBITDA'),orcP:base['EBITDA'].orcP};
+
+  // EBITDA Ajustado = EBITDA + Resultados
+  const eba_f=ebt_f+ff2('Resultados Não Recorentes');
+  const eba_r=ebt_r+rP2('Resultados Não Recorentes');
+  const eba_o=ebt_o+ot2('Resultados Não Recorentes');
+  v['EBITDA Ajustado']={realP:eba_r,orcTot:eba_o,fcstF:eba_f,fcstTot:eba_r+eba_f,orcF:of_('EBITDA Ajustado'),orcP:base['EBITDA Ajustado'].orcP};
 
   return v;
 }
 
-let _SC=null;
 function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
   _SC={rows,mesesReal,mesesOrc};
   buildThead('thead-sim',lReal,lOrc,[
@@ -524,7 +547,6 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
     {label:'',sub:'AV%',cls:'th-real'},
     {label:`Orç ${lOrc}/26`,sub:'R$',cls:'th-orc'},
     {label:'',sub:'AV%',cls:'th-orc'},
-    {label:'% Desvio',sub:'vs orçado',cls:'th-orc'},
     {label:`Forecast ${lOrc}/26`,sub:'R$',cls:'th-total'},
     {label:'',sub:'AV%',cls:'th-total'},
     {label:'Forecast Total',sub:'R$',cls:'th-total'},
@@ -535,136 +557,54 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
   ]);
   const thead=document.getElementById('thead-sim');
   const cg=thead.querySelector('colgroup');
-  if(cg)cg.innerHTML=`<col style="width:220px"><col style="width:82px"><col style="width:52px"><col style="width:82px"><col style="width:52px"><col style="width:65px"><col style="width:82px"><col style="width:52px"><col style="width:82px"><col style="width:52px"><col style="width:82px"><col style="width:52px"><col style="width:60px">`;
-
-  document.getElementById('tbody-sim').innerHTML=LINHAS.map(({l,c})=>{
-    const realP=somaReal(rows,l,mesesReal);
-    const orcP =somaOrc(rows,l,mesesReal);
-    const orcF =somaOrc(rows,l,mesesOrc);
-    const orcTot=orcP+orcF;
-    const isTot=TOTALIZADORES.has(l);
-    const fator=(orcP!==0)?realP/orcP:1;
-    const desvio=(fator-1)*100;
-    const fcstF=orcF*(1+desvio/100);
-    const fcstTot=realP+fcstF;
-    const ah=fmtAH(fcstTot,orcTot);
-    const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
-    const desvioTot=(orcF!==0)?((fcstF/orcF)-1)*100:0;
-    const pctCell=isTot
-      ? `<td style="text-align:center"><input class="sim-input sim-tot" id="${id}" type="number" step="0.0001" value="${desvioTot.toFixed(4)}" onchange="onEditTot('${l.replace(/'/g,"\\'")}')"></td>`
-      : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.0001" value="${desvio.toFixed(4)}" onchange="onEditFilha('${l.replace(/'/g,"\\'")}')"></td>`;
-    return`<tr class="${c}"><td>${l}</td>
-      <td class="${neg(realP)}" id="${id}_rP">${fmtN(realP)}</td>
-      <td class="av" id="${id}_avR">-</td>
-      <td class="${neg(orcF)}" id="${id}_oF">${fmtN(orcF)}</td>
-      <td class="av" id="${id}_avO">-</td>
-      ${pctCell}
-      <td class="${neg(fcstF)}" id="${id}_fF">${fmtN(fcstF)}</td>
-      <td class="av" id="${id}_avF">-</td>
-      <td class="${neg(fcstTot)}" id="${id}_fT">${fmtN(fcstTot)}</td>
-      <td class="av" id="${id}_avT">-</td>
-      <td class="${neg(orcTot)}" id="${id}_oT">${fmtN(orcTot)}</td>
-      <td class="av" id="${id}_avG">-</td>
-      <td class="${ah.cls}" id="${id}_ah">${ah.txt}</td></tr>`;
-  }).join('');
+  if(cg)cg.innerHTML=`<col style="width:240px"><col style="width:90px"><col style="width:52px"><col style="width:90px"><col style="width:52px"><col style="width:90px"><col style="width:52px"><col style="width:90px"><col style="width:52px"><col style="width:90px"><col style="width:52px"><col style="width:60px">`;
+  document.getElementById('tbody-sim').innerHTML=LINHAS.map(({l,c})=>`<tr class="${c}"><td>${l}</td>
+    <td id="s_${cssid(l)}_rP"></td><td class="av" id="s_${cssid(l)}_avR"></td>
+    <td id="s_${cssid(l)}_oF"></td><td class="av" id="s_${cssid(l)}_avO"></td>
+    <td id="s_${cssid(l)}_fF"></td><td class="av" id="s_${cssid(l)}_avF"></td>
+    <td id="s_${cssid(l)}_fT"></td><td class="av" id="s_${cssid(l)}_avT"></td>
+    <td id="s_${cssid(l)}_oT"></td><td class="av" id="s_${cssid(l)}_avG"></td>
+    <td id="s_${cssid(l)}_ah"></td></tr>`).join('');
   recalcSim();
 }
 
-// Mapa filha -> lista de pais ancestrais (para limpar override em cascata)
-const _FILHA_PAIS={};
-Object.keys(COMPOSICAO).forEach(pai=>{
-  COMPOSICAO[pai].forEach(filha=>{
-    if(!_FILHA_PAIS[filha])_FILHA_PAIS[filha]=[];
-    _FILHA_PAIS[filha].push(pai);
-  });
-});
-// Resolve todos os ancestrais de uma filha (cascata para cima)
-function _ancestrais(linha){
-  const res=new Set();
-  let fila=[linha];
-  while(fila.length){
-    const atual=fila.shift();
-    (_FILHA_PAIS[atual]||[]).forEach(pai=>{
-      if(!res.has(pai)){res.add(pai);fila.push(pai);}
-    });
-  }
-  return [...res];
-}
-
-// Usuário editou uma conta filha → limpa override de TODOS os pais ancestrais
-function onEditFilha(linha){
-  _ancestrais(linha).forEach(pai=>{ _override[pai]=null; });
-  recalcSim();
-}
-
-// Usuário editou um totalizador → registra override manual e limpa overrides dos pais acima
-function onEditTot(linha){
-  const id='sim_'+linha.replace(/[^a-zA-Z0-9]/g,'_');
-  const inp=document.getElementById(id);
-  _override[linha]=inp?parseFloat(inp.value)||0:0;
-  // pais acima deste totalizador voltam a ser soma (refletem a mudança)
-  _ancestrais(linha).forEach(pai=>{ _override[pai]=null; });
-  recalcSim();
-}
+function cssid(l){return l.replace(/[^a-zA-Z0-9]/g,'_');}
 
 function recalcSim(){
   const cv=_calcSim();
-  // Base RL para AV%
   const rl=cv['Receita Líquida']||{};
   const rlR=rl.realP||1, rlF=rl.orcF||1, rlFcstF=rl.fcstF||1, rlT=rl.fcstTot||1, rlG=rl.orcTot||1;
-
   LINHAS.forEach(({l})=>{
-    const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
     const dat=cv[l];if(!dat)return;
-    const isTot=TOTALIZADORES.has(l);
-    const eF  =document.getElementById(id+'_fF');
-    const eT  =document.getElementById(id+'_fT');
-    const eAH =document.getElementById(id+'_ah');
-    const ePct=document.getElementById(id+'_pct');
-    const eAvR=document.getElementById(id+'_avR');
-    const eAvO=document.getElementById(id+'_avO');
-    const eAvF=document.getElementById(id+'_avF');
-    const eAvT=document.getElementById(id+'_avT');
-    const eAvG=document.getElementById(id+'_avG');
-
-    if(eF) {eF.textContent=fmtN(dat.fcstF);eF.className=neg(dat.fcstF);}
-    if(eT) {eT.textContent=fmtN(dat.fcstTot);eT.className=neg(dat.fcstTot);}
-    if(eAH){const ah=fmtAH(dat.fcstTot,dat.orcTot);eAH.textContent=ah.txt;eAH.className=ah.cls;}
-    // Totalizador sem override manual: sincroniza o valor do input com o % calculado pela soma
-    if(isTot){
-      const inpTot=document.getElementById(id);
-      if(inpTot && _override[l]==null && dat.pct!=null && document.activeElement!==inpTot){
-        inpTot.value=dat.pct.toFixed(4);
-      }
-    }
-    if(eAvR)eAvR.textContent=fmtAV(dat.realP,rlR);
-    if(eAvO)eAvO.textContent=fmtAV(dat.orcF,rlF);
-    if(eAvF)eAvF.textContent=fmtAV(dat.fcstF,rlFcstF);
-    if(eAvT)eAvT.textContent=fmtAV(dat.fcstTot,rlT);
-    if(eAvG)eAvG.textContent=fmtAV(dat.orcTot,rlG);
+    const id='s_'+cssid(l);
+    const set=(suf,val,isNeg)=>{const e=document.getElementById(id+suf);if(e){e.textContent=val;if(isNeg!==undefined)e.className=isNeg?'neg':'';}};
+    set('_rP',fmtN(dat.realP),dat.realP<0);
+    set('_avR',fmtAV(dat.realP,rlR));
+    set('_oF',fmtN(dat.orcF),dat.orcF<0);
+    set('_avO',fmtAV(dat.orcF,rlF));
+    set('_fF',fmtN(dat.fcstF),dat.fcstF<0);
+    set('_avF',fmtAV(dat.fcstF,rlFcstF));
+    set('_fT',fmtN(dat.fcstTot),dat.fcstTot<0);
+    set('_avT',fmtAV(dat.fcstTot,rlT));
+    set('_oT',fmtN(dat.orcTot),dat.orcTot<0);
+    set('_avG',fmtAV(dat.orcTot,rlG));
+    const ah=fmtAH(dat.fcstTot,dat.orcTot);
+    const eAH=document.getElementById(id+'_ah');
+    if(eAH){eAH.textContent=ah.txt;eAH.className=ah.cls;}
   });
   _recalcKpiSim();
+  renderSensibilidade();
 }
 
 function resetSim(){
-  if(!_SC)return;
-  const{rows,mesesReal,mesesOrc}=_SC;
-  _override={};  // limpa todos os overrides manuais dos totalizadores
-  LINHAS.forEach(({l})=>{
-    if(TOTALIZADORES.has(l))return;
-    const id='sim_'+l.replace(/[^a-zA-Z0-9]/g,'_');
-    const inp=document.getElementById(id);if(!inp)return;
-    const realP=somaReal(rows,l,mesesReal);
-    const orcP =somaOrc(rows,l,mesesReal);
-    const fator=(orcP!==0)?realP/orcP:1;
-    inp.value=((fator-1)*100).toFixed(4);
-  });
+  const idx=document.getElementById('idxFat');
+  if(idx)idx.value='0';
   recalcSim();
 }
 
 function _simVal(l){
   const cv=_calcSim();
-  return cv[l]||{fcstTot:0,orcTot:0};
+  return cv[l]||{fcstTot:0,orcTot:0,fcstF:0};
 }
 
 function _recalcKpiSim(){
@@ -678,6 +618,67 @@ function _recalcKpiSim(){
     {label:'EBITDA — Sim.',value:fmtM(ebt.fcstTot),sub:fmtAH(ebt.fcstTot,ebt.orcTot).txt+' vs Orç',subCls:fmtAH(ebt.fcstTot,ebt.orcTot).cls==='ah-pos'?'kpi-up':'kpi-dn',extra:' kpi-sim'},
     {label:'EBITDA Ajustado — Sim.',value:fmtM(eb.fcstTot),sub:fmtAH(eb.fcstTot,eb.orcTot).txt+' vs Orç',subCls:fmtAH(eb.fcstTot,eb.orcTot).cls==='ah-pos'?'kpi-up':'kpi-dn',extra:' kpi-sim'},
   ]);
+}
+
+// ══════════════════════════════════════════
+// ④ SENSIBILIDADE — EBITDA (Faturamento × Margem Bruta)
+// ══════════════════════════════════════════
+function renderSensibilidade(){
+  if(!_SC)return;
+  const{rows,mesesReal,mesesOrc}=_SC;
+  const base=_baseTendencia(rows,mesesReal,mesesOrc);
+
+  // Valores base da tendência (forecast TOTAL ano)
+  const rlTot   = base['Receita Líquida'].fcstTot;
+  const lbaTot  = base['Lucro Bruto Ajustado'].fcstTot;
+  const sgaTot  = base['SG&A'].fcstTot;
+  const outTot  = base['Outras Receitas/Despesas Operacionais'].fcstTot;
+  const mbBasePct = rlTot!==0 ? (lbaTot/rlTot*100) : 0;     // margem bruta ajustada base
+  const sgaBasePct= rlTot!==0 ? (sgaTot/rlTot*100) : 0;     // SG&A base (negativo)
+
+  // Parte fixa vs variável do SG&A (fixas mantêm valor, variáveis acompanham receita)
+  const fixVal = ['Gastos com Pessoal - SG&A','Gastos com Pessoal Comercial','Aluguel']
+    .reduce((s,l)=>s+base[l].fcstTot,0);
+  const sgaVarPct = rlTot!==0 ? ((sgaTot-fixVal)/rlTot*100) : 0;
+
+  // Inputs
+  const fatBase=parseFloat(document.getElementById('sFatBase').value)||0;
+  const fatStep=parseFloat(document.getElementById('sFatStep').value)||5;
+  const mbInput=document.getElementById('sMbBase').value;
+  const mbBase = mbInput!==''? parseFloat(mbInput) : mbBasePct;
+  const mbStep=parseFloat(document.getElementById('sMbStep').value)||1;
+  const sgaInput=document.getElementById('sSga').value;
+  const sgaPct = sgaInput!==''? parseFloat(sgaInput) : sgaBasePct;
+
+  // Faixas 5×5
+  const fatRange=[-2,-1,0,1,2].map(i=>fatBase+i*fatStep);
+  const mbRange =[-2,-1,0,1,2].map(i=>mbBase +i*mbStep);
+
+  // EBITDA = RL×MB% (LBA) + SGA + Outras ; SGA = fixo + RL_cenário × sgaVarPct
+  // RL_cenário = rlTot × (1 + fat%/100)
+  function ebitda(fatPct, mbPct){
+    const rl = rlTot*(1+fatPct/100);
+    const lba = rl*(mbPct/100);
+    const sgaVar = rl*(sgaVarPct/100);
+    const sga = fixVal + sgaVar;
+    return lba + sga + outTot;
+  }
+
+  // Thead
+  const thead=document.getElementById('thead-sens');
+  thead.innerHTML='<tr><th>Fat. \\ MB%</th>'+mbRange.map(mb=>`<th>${mb.toFixed(1).replace('.',',')}%</th>`).join('')+'</tr>';
+
+  // Tbody
+  const tbody=document.getElementById('tbody-sens');
+  tbody.innerHTML=fatRange.map(fat=>{
+    const cells=mbRange.map(mb=>{
+      const e=ebitda(fat,mb);
+      const isBase=(Math.abs(fat-fatBase)<0.001 && Math.abs(mb-mbBase)<0.001);
+      const cls=isBase?'sens-base':(e>=0?'sens-pos':'sens-neg');
+      return `<td class="${cls}">${(e/1e6).toFixed(1).replace('.',',')}</td>`;
+    }).join('');
+    return `<tr><td class="sens-row-hdr">${(fat>=0?'+':'')+fat.toFixed(1).replace('.',',')}%</td>${cells}</tr>`;
+  }).join('');
 }
 
 // ══════════════════════════════════════════
