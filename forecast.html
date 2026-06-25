@@ -343,21 +343,29 @@ function renderTendencia(rows,mesesReal,mesesOrc,lReal,lOrc){
     calc[l]={realP,orcP,orcF,fcstF,fcstTot,orcTot,fator};
   });
 
-  // EBITDA e EBITDA Ajustado: calculados por soma de componentes (não fator direto)
-  // O fator direto distorce quando realizado é próximo de zero ou tem sinal oposto ao orçado
-  const _ebt_f  = calc['Lucro Bruto Ajustado'].fcstF  + calc['SG&A'].fcstF  + calc['Outras Receitas/Despesas Operacionais'].fcstF;
-  const _ebt_r  = calc['Lucro Bruto Ajustado'].realP  + calc['SG&A'].realP  + calc['Outras Receitas/Despesas Operacionais'].realP;
-  const _ebt_oF = calc['Lucro Bruto Ajustado'].orcF   + calc['SG&A'].orcF   + calc['Outras Receitas/Despesas Operacionais'].orcF;
-  const _ebt_oP = calc['Lucro Bruto Ajustado'].orcP   + calc['SG&A'].orcP   + calc['Outras Receitas/Despesas Operacionais'].orcP;
-  const _ebt_o  = calc['Lucro Bruto Ajustado'].orcTot + calc['SG&A'].orcTot + calc['Outras Receitas/Despesas Operacionais'].orcTot;
-  calc['EBITDA']={realP:_ebt_r,orcP:_ebt_oP,orcF:_ebt_oF,fcstF:_ebt_f,fcstTot:_ebt_r+_ebt_f,orcTot:_ebt_o};
-
-  const _eba_f  = calc['EBITDA'].fcstF  + calc['Resultados Não Recorentes'].fcstF;
-  const _eba_r  = calc['EBITDA'].realP  + calc['Resultados Não Recorentes'].realP;
-  const _eba_oF = calc['EBITDA'].orcF   + calc['Resultados Não Recorentes'].orcF;
-  const _eba_oP = calc['EBITDA'].orcP   + calc['Resultados Não Recorentes'].orcP;
-  const _eba_o  = calc['EBITDA'].orcTot + calc['Resultados Não Recorentes'].orcTot;
-  calc['EBITDA Ajustado']={realP:_eba_r,orcP:_eba_oP,orcF:_eba_oF,fcstF:_eba_f,fcstTot:_eba_r+_eba_f,orcTot:_eba_o};
+  // TOTALIZADORES por soma de componentes (não fator direto da linha-mãe)
+  // Garante que a soma das filhas = totalizador em todas as colunas
+  function _somaComp(comps){
+    let realP=0,orcP=0,orcF=0;
+    comps.forEach(c=>{realP+=calc[c].realP;orcP+=calc[c].orcP;orcF+=calc[c].orcF;});
+    return {realP,orcP,orcF,fcstF:0,fcstTot:0,orcTot:orcP+orcF};
+  }
+  function _setTot(nome,comps){
+    const t=_somaComp(comps);
+    // forecast = soma dos forecasts das filhas
+    let fcstF=0; comps.forEach(c=>{fcstF+=calc[c].fcstF;});
+    t.fcstF=fcstF; t.fcstTot=t.realP+fcstF;
+    calc[nome]=t;
+  }
+  _setTot('Receita Bruta',['Receita com Revenda de Mercadorias','Receita com Serviços','Ajuste Intercompany']);
+  _setTot('Receita Líquida',['Receita Bruta','Impostos S/ Vendas']);
+  _setTot('CMV & CSP',['Custo das Mercadorias Vendidas','Ajuste Custo Intercompany','Custo dos Serviços Prestados']);
+  _setTot('Lucro Bruto',['Receita Líquida','CMV & CSP']);
+  _setTot('Lucro Bruto Ajustado',['Lucro Bruto','Verbas Comerciais']);
+  _setTot('SG&A',['Comissões sobre Vendas','Gastos com Pessoal Comercial','Gastos com Pessoal - SG&A',
+    'Despesas Comerciais','Despesas com Distribuição','Despesas Administrativas','Despesas Tributárias','Aluguel']);
+  _setTot('EBITDA',['Lucro Bruto Ajustado','SG&A','Outras Receitas/Despesas Operacionais']);
+  _setTot('EBITDA Ajustado',['EBITDA','Resultados Não Recorentes']);
   const rb=calc['Receita Bruta'],rl=calc['Receita Líquida'],mb=calc['Lucro Bruto Ajustado'],sg=calc['SG&A'],ebt=calc['EBITDA'],eb=calc['EBITDA Ajustado'];
   buildKpis('kpi-tend',[
     {label:'Receita Bruta — Tend.',value:fmtM(rb.fcstTot),sub:fmtAH(rb.fcstTot,rb.orcTot).txt+' vs Orç',subCls:fmtAH(rb.fcstTot,rb.orcTot).cls==='ah-pos'?'kpi-up':'kpi-dn',extra:' kpi-tend'},
