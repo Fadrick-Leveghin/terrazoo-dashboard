@@ -450,61 +450,42 @@ function _baseTendencia(rows,mesesReal,mesesOrc){
 function _calcSim(){
   if(!_SC)return{};
   const{rows,mesesReal,mesesOrc}=_SC;
-  const idx=parseFloat(document.getElementById('idxFat')?.value)||0; // % indexador faturamento
+  const idx=parseFloat(document.getElementById('idxFat')?.value)||0; // % indexador
   const base=_baseTendencia(rows,mesesReal,mesesOrc);
   const v={};
-  const idxZero = Math.abs(idx)<1e-9;
 
-  // RL realizada (Jan-Mai) = base dos AV%
+  // RL realizada (Jan-Mai) = denominador dos AV%
   const rlRealReal = base['Receita Líquida'] ? base['Receita Líquida'].realP : 0;
+  // RL orçada Jun-Dez = BASE de aplicação dos AV%
+  const rlOrcF = base['Receita Líquida'] ? base['Receita Líquida'].orcF : 0;
+  // Base ajustada pelo indexador
+  const rlBaseF = rlOrcF*(1+idx/100);
+
   // AV% de cada linha sobre a RL REALIZADA (Jan-Mai)
   const avReal=(l)=> (rlRealReal!==0 && base[l])? (base[l].realP/rlRealReal) : 0;
 
-  const LINHAS_FAT2=['Receita com Revenda de Mercadorias','Receita com Serviços','Ajuste Intercompany'];
-  const POR_AV=['Custo das Mercadorias Vendidas','Ajuste Custo Intercompany',
+  // Linhas que projetam por AV%_realizado × RL_base
+  const POR_AV=['Receita com Revenda de Mercadorias','Receita com Serviços','Ajuste Intercompany',
+    'Impostos S/ Vendas','Custo das Mercadorias Vendidas','Ajuste Custo Intercompany',
     'Custo dos Serviços Prestados','Verbas Comerciais','Comissões sobre Vendas',
     'Despesas Comerciais','Despesas com Distribuição','Despesas Administrativas',
     'Despesas Tributárias','Outras Receitas/Despesas Operacionais'];
+  // Linhas FIXAS: orçado Jun-Dez (não variam)
   const FIXAS=['Gastos com Pessoal - SG&A','Gastos com Pessoal Comercial','Aluguel','Resultados Não Recorentes'];
 
-  // Helpers base
   const of_=l=>base[l]?base[l].orcF:0;
   const oP_=l=>base[l]?base[l].orcP:0;
   const ot_=l=>base[l]?base[l].orcTot:0;
   const rp_=l=>base[l]?base[l].realP:0;
 
-  // 1) Faturamento: indexador sobre orçado Jun-Dez
-  LINHAS_FAT2.forEach(l=>{
-    const b=base[l];
-    const fcstF=b.orcF*(1+idx/100);
-    v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF,fcstTot:b.realP+fcstF,orcTot:b.orcTot};
-  });
-  // Receita Bruta projetada (soma faturamento)
-  const rb_fcstF = v['Receita com Revenda de Mercadorias'].fcstF + v['Receita com Serviços'].fcstF + v['Ajuste Intercompany'].fcstF;
-
-  // 2) Impostos: idx=0 → orçado; idx≠0 → AV realizado × ? 
-  // Para fechar a RL resultante, Impostos também acompanha o faturamento.
-  // RL resultante = RB projetada + Impostos. Impostos = AV_imposto × RL_resultante.
-  // RL_res = rb_fcstF + av_imp × RL_res  →  RL_res = rb_fcstF / (1 - av_imp)
-  const avImp = avReal('Impostos S/ Vendas'); // negativo
-  let imp_fcstF, rl_fcstF;
-  if(idxZero){
-    imp_fcstF = of_('Impostos S/ Vendas');
-    rl_fcstF  = of_('Receita Líquida');
-  } else {
-    rl_fcstF  = rb_fcstF/(1 - avImp);   // RL resultante coerente
-    imp_fcstF = rl_fcstF - rb_fcstF;     // impostos = RL - RB
-  }
-  v['Impostos S/ Vendas']={realP:rp_('Impostos S/ Vendas'),orcP:oP_('Impostos S/ Vendas'),orcF:of_('Impostos S/ Vendas'),fcstF:imp_fcstF,fcstTot:rp_('Impostos S/ Vendas')+imp_fcstF,orcTot:ot_('Impostos S/ Vendas')};
-
-  // 3) Variáveis: idx=0 → orçado; idx≠0 → AV realizado × RL resultante
+  // 1) Linhas por AV%: fcstF = RL_base × AV%_realizado
   POR_AV.forEach(l=>{
     const b=base[l];
-    const fcstF = idxZero ? b.orcF : (rl_fcstF*avReal(l));
+    const fcstF=rlBaseF*avReal(l);
     v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF,fcstTot:b.realP+fcstF,orcTot:b.orcTot};
   });
 
-  // 4) Fixas: sempre orçado Jun-Dez
+  // 2) Linhas fixas: orçado Jun-Dez
   FIXAS.forEach(l=>{
     const b=base[l];
     v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF:b.orcF,fcstTot:b.realP+b.orcF,orcTot:b.orcTot};
