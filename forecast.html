@@ -168,18 +168,32 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
 
   <!-- ── SENSIBILIDADE ── -->
   <div class="tbl-wrap">
-    <div class="tbl-header"><div class="tbl-title">④ Análise de Sensibilidade — EBITDA (Faturamento × Margem Bruta)</div></div>
-    <div class="sim-bar" style="flex-wrap:wrap;gap:16px">
-      <div class="sens-grp"><span class="sens-lbl">Faturamento base %</span><input class="sim-input" id="sFatBase" type="number" step="1" value="0" onchange="renderSensibilidade()"></div>
-      <div class="sens-grp"><span class="sens-lbl">Passo Fat. (pp)</span><input class="sim-input" id="sFatStep" type="number" step="1" value="5" onchange="renderSensibilidade()"></div>
+    <div class="tbl-header"><div class="tbl-title">④ Simulação de Cenário — EBITDA</div></div>
+    <div class="sim-bar" style="flex-wrap:wrap;gap:18px">
+      <div class="sens-grp"><span class="sens-lbl">Faturamento (variação %)</span><input class="sim-input" id="cFat" type="number" step="1" value="0" onchange="renderSensibilidade()" style="width:90px"></div>
+      <div class="sens-grp"><span class="sens-lbl">Margem Bruta (% da RL)</span><input class="sim-input" id="cMb" type="number" step="0.5" onchange="renderSensibilidade()" style="width:90px"></div>
+      <div class="sens-grp"><span class="sens-lbl">SG&A (% da RL)</span><input class="sim-input" id="cSga" type="number" step="0.5" onchange="renderSensibilidade()" style="width:90px"></div>
+      <button class="btn-rst" onclick="resetCenario()">↺ Igualar ao Simulador</button>
+    </div>
+    <div class="kpis" id="kpi-cenario" style="grid-template-columns:repeat(4,1fr)"></div>
+  </div>
+
+  <!-- ── MATRIZ DE APOIO ── -->
+  <div class="tbl-wrap">
+    <div class="tbl-header"><div class="tbl-title">⑤ Matriz de Sensibilidade — EBITDA</div></div>
+    <div class="sim-bar" style="flex-wrap:wrap;gap:18px">
+      <div class="sens-grp"><span class="sens-lbl">Cruzar</span>
+        <select id="mxTipo" class="sim-input" style="width:200px" onchange="renderMatriz()">
+          <option value="fat_mb">Faturamento × Margem Bruta</option>
+          <option value="fat_sga">Faturamento × SG&A</option>
+        </select>
+      </div>
       <div class="filtro-sep"></div>
-      <div class="sens-grp"><span class="sens-lbl">Margem Bruta base %</span><input class="sim-input" id="sMbBase" type="number" step="0.5" value="0" onchange="renderSensibilidade()" placeholder="auto"></div>
-      <div class="sens-grp"><span class="sens-lbl">Passo MB (pp)</span><input class="sim-input" id="sMbStep" type="number" step="0.5" value="1" onchange="renderSensibilidade()"></div>
-      <div class="filtro-sep"></div>
-      <div class="sens-grp"><span class="sens-lbl">SG&A % da RL</span><input class="sim-input" id="sSga" type="number" step="0.5" value="0" onchange="renderSensibilidade()" placeholder="auto" style="width:80px"></div>
+      <div class="sens-grp"><span class="sens-lbl">Passo Faturamento (pp)</span><input class="sim-input" id="mxFatStep" type="number" step="1" value="5" onchange="renderMatriz()"></div>
+      <div class="sens-grp"><span class="sens-lbl">Passo Coluna (pp)</span><input class="sim-input" id="mxColStep" type="number" step="0.5" value="1" onchange="renderMatriz()"></div>
     </div>
     <div class="tbl-outer"><table id="tbl-sens"><thead id="thead-sens"></thead><tbody id="tbody-sens"></tbody></table></div>
-    <div style="padding:10px 18px;font-size:11px;color:var(--muted)">Valores em R$ milhões. Linhas = variação do faturamento · Colunas = margem bruta % sobre Receita Líquida · Célula = EBITDA projetado (ano completo). Célula destacada = cenário base.</div>
+    <div style="padding:10px 18px;font-size:11px;color:var(--muted)">Valores em R$ milhões. Linhas = variação do faturamento sobre o simulador · Colunas = a variável escolhida · Célula = EBITDA. Célula destacada (âmbar) = cenário do simulador atual (0% / margem e SG&A correntes).</div>
   </div>
 </main>
 
@@ -598,66 +612,112 @@ function _recalcKpiSim(){
 // ══════════════════════════════════════════
 // ④ SENSIBILIDADE — EBITDA (Faturamento × Margem Bruta)
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// ④⑤ SIMULAÇÃO DE CENÁRIO + MATRIZ — base no simulador
+// ══════════════════════════════════════════
+// Extrai os parâmetros base do estado ATUAL do simulador
+function _baseCenario(){
+  const cv=_calcSim();
+  const rl  = cv['Receita Líquida']?cv['Receita Líquida'].fcstTot:0;     // RL projetada (ano? não — Jun-Dez+real)
+  // usamos o FORECAST TOTAL (real+forecast) para refletir o ano inteiro
+  const lba = cv['Lucro Bruto Ajustado']?cv['Lucro Bruto Ajustado'].fcstTot:0;
+  const sga = cv['SG&A']?cv['SG&A'].fcstTot:0;
+  const out = cv['Outras Receitas/Despesas Operacionais']?cv['Outras Receitas/Despesas Operacionais'].fcstTot:0;
+  const res = cv['Resultados Não Recorentes']?cv['Resultados Não Recorentes'].fcstTot:0;
+  const ebt = cv['EBITDA']?cv['EBITDA'].fcstTot:0;
+  // parte fixa do SG&A (não varia com faturamento)
+  const fix = ['Gastos com Pessoal - SG&A','Gastos com Pessoal Comercial','Aluguel']
+    .reduce((s,l)=>s+(cv[l]?cv[l].fcstTot:0),0);
+  const mbPct  = rl!==0?(lba/rl*100):0;
+  const sgaPct = rl!==0?(sga/rl*100):0;
+  const sgaVarPct = rl!==0?((sga-fix)/rl*100):0;
+  return {rl,lba,sga,out,res,ebt,fix,mbPct,sgaPct,sgaVarPct};
+}
+
+// EBITDA de um cenário: faturamento varia %, margem e sga% podem mudar
+function _ebitdaCenario(b, fatPct, mbPct, sgaPct){
+  const rl = b.rl*(1+fatPct/100);
+  const lba = rl*(mbPct/100);
+  // SG&A = parte fixa (constante) + parte variável (acompanha receita)
+  // sgaPct é o SG&A total %; a parte fixa é constante, então:
+  // sga = fix + (rl × sgaVarPct/100) quando mantém estrutura;
+  // mas se o usuário muda sgaPct, recalculamos: variável = sgaPct_total − fix%base
+  const fixPctBase = b.rl!==0? (b.fix/b.rl*100):0;        // % fixa sobre RL base
+  const varPct = sgaPct - fixPctBase;                      // % variável implícito
+  const sga = b.fix + rl*(varPct/100);
+  return lba + sga + b.out;
+}
+
+let _cenBase=null;
+
 function renderSensibilidade(){
   if(!_SC)return;
-  const cv=_calcSim();
-  if(!cv['Receita Líquida'])return;
+  const b=_baseCenario();
+  _cenBase=b;
 
-  // Valores base do simulador (forecast TOTAL ano) — reflete o indexador atual
-  const rlTot   = cv['Receita Líquida'].fcstTot;
-  const lbaTot  = cv['Lucro Bruto Ajustado'].fcstTot;
-  const sgaTot  = cv['SG&A'].fcstTot;
-  const outTot  = cv['Outras Receitas/Despesas Operacionais'].fcstTot;
-  const mbBasePct = rlTot!==0 ? (lbaTot/rlTot*100) : 0;     // margem bruta ajustada base
-  const sgaBasePct= rlTot!==0 ? (sgaTot/rlTot*100) : 0;     // SG&A base (negativo)
+  // Pré-preenche margem e sga se vazios
+  const mbInp=document.getElementById('cMb');
+  const sgaInp=document.getElementById('cSga');
+  if(mbInp && mbInp.value==='') mbInp.value=b.mbPct.toFixed(1);
+  if(sgaInp && sgaInp.value==='') sgaInp.value=b.sgaPct.toFixed(1);
 
-  // Parte fixa vs variável do SG&A
-  const fixVal = ['Gastos com Pessoal - SG&A','Gastos com Pessoal Comercial','Aluguel']
-    .reduce((s,l)=>s+(cv[l]?cv[l].fcstTot:0),0);
-  const sgaVarPct = rlTot!==0 ? ((sgaTot-fixVal)/rlTot*100) : 0;
+  const fat=parseFloat(document.getElementById('cFat').value)||0;
+  const mb =mbInp.value!==''?parseFloat(mbInp.value):b.mbPct;
+  const sga=sgaInp.value!==''?parseFloat(sgaInp.value):b.sgaPct;
 
-  // Inputs
-  const fatBase=parseFloat(document.getElementById('sFatBase').value)||0;
-  const fatStep=parseFloat(document.getElementById('sFatStep').value)||5;
-  const mbInput=document.getElementById('sMbBase').value;
-  const mbBase = mbInput!==''? parseFloat(mbInput) : mbBasePct;
-  const mbStep=parseFloat(document.getElementById('sMbStep').value)||1;
-  const sgaInput=document.getElementById('sSga').value;
-  const sgaPct = sgaInput!==''? parseFloat(sgaInput) : sgaBasePct;
+  const rlCen=b.rl*(1+fat/100);
+  const lbaCen=rlCen*(mb/100);
+  const ebtCen=_ebitdaCenario(b,fat,mb,sga);
+  const delta=ebtCen-b.ebt;
 
-  // Faixas 5×5
-  const fatRange=[-2,-1,0,1,2].map(i=>fatBase+i*fatStep);
-  const mbRange =[-2,-1,0,1,2].map(i=>mbBase +i*mbStep);
+  buildKpis('kpi-cenario',[
+    {label:'Receita Líquida',value:fmtM(rlCen),sub:`${(fat>=0?'+':'')+fat.toFixed(1).replace('.',',')}% vs simulador`,subCls:fat>=0?'kpi-up':'kpi-dn'},
+    {label:'Lucro Bruto Ajustado',value:fmtM(lbaCen),sub:`Margem ${mb.toFixed(1).replace('.',',')}% da RL`},
+    {label:'EBITDA do Cenário',value:fmtM(ebtCen),sub:`SG&A ${sga.toFixed(1).replace('.',',')}% da RL`,subCls:ebtCen>=0?'kpi-up':'kpi-dn'},
+    {label:'Δ vs Simulador',value:(delta>=0?'+':'')+fmtM(delta),sub:b.ebt!==0?`${(delta/Math.abs(b.ebt)*100).toFixed(1).replace('.',',')}%`:'-',subCls:delta>=0?'kpi-up':'kpi-dn'},
+  ]);
+  renderMatriz();
+}
 
-  // EBITDA = RL×MB% (LBA) + SGA + Outras ; SGA = fixo + RL_cenário × sgaVarPct
-  // RL_cenário = rlTot × (1 + fat%/100)
-  function ebitda(fatPct, mbPct){
-    const rl = rlTot*(1+fatPct/100);
-    const lba = rl*(mbPct/100);
-    const sgaVar = rl*(sgaVarPct/100);
-    const sga = fixVal + sgaVar;
-    return lba + sga + outTot;
-  }
+function resetCenario(){
+  const b=_baseCenario();
+  document.getElementById('cFat').value='0';
+  document.getElementById('cMb').value=b.mbPct.toFixed(1);
+  document.getElementById('cSga').value=b.sgaPct.toFixed(1);
+  renderSensibilidade();
+}
 
-  // Thead — duas linhas: título do eixo MB e os valores de margem
+function renderMatriz(){
+  if(!_cenBase)return;
+  const b=_cenBase;
+  const tipo=document.getElementById('mxTipo').value;
+  const fatStep=parseFloat(document.getElementById('mxFatStep').value)||5;
+  const colStep=parseFloat(document.getElementById('mxColStep').value)||1;
+
+  const fatRange=[-2,-1,0,1,2].map(i=>i*fatStep);             // variação faturamento (linhas)
+  const colBase = tipo==='fat_mb'? b.mbPct : b.sgaPct;        // base da coluna
+  const colRange=[-2,-1,0,1,2].map(i=>colBase+i*colStep);
+  const colLabel= tipo==='fat_mb'? 'Margem Bruta' : 'SG&A';
+
   const thead=document.getElementById('thead-sens');
   thead.innerHTML=
-    `<tr><th rowspan="2" style="background:var(--v1)">Faturamento ↓ / Margem Bruta →</th>`+
-    `<th colspan="${mbRange.length}" style="background:var(--col-total)">Margem Bruta (% da Receita Líquida)</th></tr>`+
-    `<tr>`+mbRange.map(mb=>`<th>${mb.toFixed(1).replace('.',',')}%</th>`).join('')+`</tr>`;
+    `<tr><th rowspan="2" style="background:var(--v1)">Faturamento ↓ / ${colLabel} →</th>`+
+    `<th colspan="${colRange.length}" style="background:var(--col-total,#206A47)">${colLabel} (% da Receita Líquida)</th></tr>`+
+    `<tr>`+colRange.map(c=>`<th>${c.toFixed(1).replace('.',',')}%</th>`).join('')+`</tr>`;
 
-  // Tbody — cada linha mostra a variação % e a Receita Líquida resultante
   const tbody=document.getElementById('tbody-sens');
   tbody.innerHTML=fatRange.map(fat=>{
-    const rlCenario=rlTot*(1+fat/100);
-    const cells=mbRange.map(mb=>{
-      const e=ebitda(fat,mb);
-      const isBase=(Math.abs(fat-fatBase)<0.001 && Math.abs(mb-mbBase)<0.001);
+    const rlCen=b.rl*(1+fat/100);
+    const cells=colRange.map(cv=>{
+      let e;
+      if(tipo==='fat_mb') e=_ebitdaCenario(b,fat,cv,b.sgaPct);
+      else                e=_ebitdaCenario(b,fat,b.mbPct,cv);
+      const isBase=(Math.abs(fat)<0.001 && Math.abs(cv-colBase)<0.001);
       const cls=isBase?'sens-base':(e>=0?'sens-pos':'sens-neg');
       return `<td class="${cls}">${(e/1e6).toFixed(1).replace('.',',')}</td>`;
     }).join('');
     const lblFat=`${(fat>=0?'+':'')+fat.toFixed(1).replace('.',',')}%`;
-    const lblRL=`RL ${(rlCenario/1e6).toFixed(1).replace('.',',')}M`;
+    const lblRL=`RL ${(rlCen/1e6).toFixed(1).replace('.',',')}M`;
     return `<tr><td class="sens-row-hdr">${lblFat}<br><span style="font-size:10px;font-weight:400;opacity:.85">${lblRL}</span></td>${cells}</tr>`;
   }).join('');
 }
