@@ -739,7 +739,7 @@ function renderMatriz(){
   const lbl=document.getElementById('mxSgaAtual');
   if(lbl)lbl.textContent='SG&A '+sgaNivel.toFixed(1).replace('.',',')+'%';
 
-  const fatRange=[-2,-1,0,1,2].map(i=>i*fatStep);
+  const fatRange=[-4,-3,-2,-1,0,1,2,3,4].map(i=>i*fatStep);
   const mbRange =[-4,-3,-2,-1,0,1,2,3,4].map(i=>b.mbProjPct+i*colStep);
 
   const thead=document.getElementById('thead-sens');
