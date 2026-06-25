@@ -445,10 +445,10 @@ function _calcSim(){
   // RL realizada = base de AV%
   const rlRealReal = base['Receita Líquida'] ? base['Receita Líquida'].realP : 0;
 
-  // 1) Linhas de faturamento: aplica indexador sobre o forecast da tendência
+  // 1) Linhas de faturamento: indexador aplicado sobre o ORÇADO Jun-Dez
   LINHAS_FAT.forEach(l=>{
     const b=base[l];
-    const fcstF=b.fcstF*(1+idx/100);
+    const fcstF=b.orcF*(1+idx/100);
     v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF,fcstTot:b.realP+fcstF,orcTot:b.orcTot};
   });
 
@@ -463,12 +463,9 @@ function _calcSim(){
   const rb_f=ff('Receita com Revenda de Mercadorias')+ff('Receita com Serviços')+ff('Ajuste Intercompany');
   v['Receita Bruta']={realP:rP('Receita Bruta'),orcP:base['Receita Bruta'].orcP,orcF:of_('Receita Bruta'),fcstF:rb_f,fcstTot:rP('Receita Bruta')+rb_f,orcTot:ot('Receita Bruta')};
 
-  // 3) Receita Líquida projetada (= RB + Impostos). Impostos variam com faturamento (AV%)
-  // Forecast RL = soma. Mas precisamos da RL projetada para aplicar AV% nas demais linhas.
-  // Impostos: recalcula pela AV% do realizado sobre a RB? Usamos proporção do forecast tendência escalada pelo indexador.
-  // Como Impostos acompanha receita, escala junto:
+  // 3) Impostos S/ Vendas: acompanha faturamento → orçado Jun-Dez × (1 + idx)
   const imp_b=base['Impostos S/ Vendas'];
-  const imp_f=imp_b.fcstF*(1+idx/100);
+  const imp_f=imp_b.orcF*(1+idx/100);
   v['Impostos S/ Vendas']={realP:imp_b.realP,orcP:imp_b.orcP,orcF:imp_b.orcF,fcstF:imp_f,fcstTot:imp_b.realP+imp_f,orcTot:imp_b.orcTot};
 
   const rl_f=rb_f+imp_f;
@@ -480,8 +477,8 @@ function _calcSim(){
   // AV% de cada linha sobre a RL REALIZADA (Jan-Mai)
   const avReal=(l)=> (rlRealReal!==0)? (base[l].realP/rlRealReal) : 0;
 
-  // 4) Linhas variáveis (exceto fixas e faturamento): fcstF = RL_forecast × AV%_realizado
-  // 5) Linhas fixas: mantêm fcstF da tendência
+  // 4) Linhas variáveis: fcstF = RL_forecast × AV%_realizado (mantém participação histórica)
+  // 5) Linhas fixas: mantêm o ORÇADO Jun-Dez (não variam com faturamento)
   const VARIAVEIS=['Custo das Mercadorias Vendidas','Ajuste Custo Intercompany','Custo dos Serviços Prestados',
     'Verbas Comerciais','Comissões sobre Vendas','Despesas Comerciais','Despesas com Distribuição',
     'Despesas Administrativas','Despesas Tributárias','Outras Receitas/Despesas Operacionais','Resultados Não Recorentes'];
@@ -494,7 +491,7 @@ function _calcSim(){
 
   LINHAS_FIXAS.forEach(l=>{
     const b=base[l];
-    v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF:b.fcstF,fcstTot:b.fcstTot,orcTot:b.orcTot};
+    v[l]={realP:b.realP,orcP:b.orcP,orcF:b.orcF,fcstF:b.orcF,fcstTot:b.realP+b.orcF,orcTot:b.orcTot};
   });
 
   // 6) Totalizadores por soma
@@ -625,20 +622,20 @@ function _recalcKpiSim(){
 // ══════════════════════════════════════════
 function renderSensibilidade(){
   if(!_SC)return;
-  const{rows,mesesReal,mesesOrc}=_SC;
-  const base=_baseTendencia(rows,mesesReal,mesesOrc);
+  const cv=_calcSim();
+  if(!cv['Receita Líquida'])return;
 
-  // Valores base da tendência (forecast TOTAL ano)
-  const rlTot   = base['Receita Líquida'].fcstTot;
-  const lbaTot  = base['Lucro Bruto Ajustado'].fcstTot;
-  const sgaTot  = base['SG&A'].fcstTot;
-  const outTot  = base['Outras Receitas/Despesas Operacionais'].fcstTot;
+  // Valores base do simulador (forecast TOTAL ano) — reflete o indexador atual
+  const rlTot   = cv['Receita Líquida'].fcstTot;
+  const lbaTot  = cv['Lucro Bruto Ajustado'].fcstTot;
+  const sgaTot  = cv['SG&A'].fcstTot;
+  const outTot  = cv['Outras Receitas/Despesas Operacionais'].fcstTot;
   const mbBasePct = rlTot!==0 ? (lbaTot/rlTot*100) : 0;     // margem bruta ajustada base
   const sgaBasePct= rlTot!==0 ? (sgaTot/rlTot*100) : 0;     // SG&A base (negativo)
 
-  // Parte fixa vs variável do SG&A (fixas mantêm valor, variáveis acompanham receita)
+  // Parte fixa vs variável do SG&A
   const fixVal = ['Gastos com Pessoal - SG&A','Gastos com Pessoal Comercial','Aluguel']
-    .reduce((s,l)=>s+base[l].fcstTot,0);
+    .reduce((s,l)=>s+(cv[l]?cv[l].fcstTot:0),0);
   const sgaVarPct = rlTot!==0 ? ((sgaTot-fixVal)/rlTot*100) : 0;
 
   // Inputs
