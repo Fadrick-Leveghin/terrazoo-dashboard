@@ -740,7 +740,7 @@ function renderMatriz(){
   if(lbl)lbl.textContent='SG&A '+sgaNivel.toFixed(1).replace('.',',')+'%';
 
   const fatRange=[-2,-1,0,1,2].map(i=>i*fatStep);
-  const mbRange =[-2,-1,0,1,2].map(i=>b.mbProjPct+i*colStep);
+  const mbRange =[-4,-3,-2,-1,0,1,2,3,4].map(i=>b.mbProjPct+i*colStep);
 
   const thead=document.getElementById('thead-sens');
   thead.innerHTML=
@@ -755,7 +755,7 @@ function renderMatriz(){
   tbody.innerHTML=fatRange.map(fat=>{
     const rlCen=b.rlReal + b.rlProj*(1+fat/100);   // RL total = realizado + projetado ajustado
     const cells=mbRange.map((mb,ci)=>{
-      const isColBase=(ci===2); // coluna central = margem base
+      const isColBase=(ci===4); // coluna central de 9 = margem base
       const isBase=(Math.abs(fat)<0.001 && isColBase && sgaExatoBase);
       // Na célula base, usa o EBITDA exato do simulador; nas demais, calcula
       const e = isBase ? ebtExato : _ebitdaCenario(b,fat,mb,sgaNivel);
