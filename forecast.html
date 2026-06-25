@@ -314,6 +314,18 @@ function renderTendencia(rows,mesesReal,mesesOrc,lReal,lOrc){
     const orcTot=orcP+orcF;
     calc[l]={realP,orcP,orcF,fcstF,fcstTot,orcTot,fator};
   });
+
+  // EBITDA e EBITDA Ajustado: calculados por soma de componentes (não fator direto)
+  // O fator direto distorce quando realizado é próximo de zero ou tem sinal oposto ao orçado
+  const _ebt_f = calc['Lucro Bruto Ajustado'].fcstF + calc['SG&A'].fcstF + calc['Outras Receitas/Despesas Operacionais'].fcstF;
+  const _ebt_r = calc['Lucro Bruto Ajustado'].realP + calc['SG&A'].realP + calc['Outras Receitas/Despesas Operacionais'].realP;
+  const _ebt_o = calc['Lucro Bruto Ajustado'].orcTot + calc['SG&A'].orcTot + calc['Outras Receitas/Despesas Operacionais'].orcTot;
+  calc['EBITDA']={realP:_ebt_r,orcP:calc['EBITDA'].orcP,orcF:_ebt_f, fcstF:_ebt_f, fcstTot:_ebt_r+_ebt_f, orcTot:_ebt_o};
+
+  const _eba_f = calc['EBITDA'].fcstF + calc['Resultados Não Recorentes'].fcstF;
+  const _eba_r = calc['EBITDA'].realP + calc['Resultados Não Recorentes'].realP;
+  const _eba_o = calc['EBITDA'].orcTot + calc['Resultados Não Recorentes'].orcTot;
+  calc['EBITDA Ajustado']={realP:_eba_r,orcP:calc['EBITDA Ajustado'].orcP,orcF:_eba_f, fcstF:_eba_f, fcstTot:_eba_r+_eba_f, orcTot:_eba_o};
   const rb=calc['Receita Bruta'],rl=calc['Receita Líquida'],mb=calc['Lucro Bruto Ajustado'],sg=calc['SG&A'],ebt=calc['EBITDA'],eb=calc['EBITDA Ajustado'];
   buildKpis('kpi-tend',[
     {label:'Receita Bruta — Tend.',value:fmtM(rb.fcstTot),sub:fmtAH(rb.fcstTot,rb.orcTot).txt+' vs Orç',subCls:fmtAH(rb.fcstTot,rb.orcTot).cls==='ah-pos'?'kpi-up':'kpi-dn',extra:' kpi-tend'},
