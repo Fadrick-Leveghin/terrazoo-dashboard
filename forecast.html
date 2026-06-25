@@ -202,7 +202,7 @@ const fmtN=v=>{
 };
 function fmtM(v){
   const a=Math.abs(v);
-  const s=a>=1e6?'R$ '+(a/1e6).toFixed(2).replace('.',',')+'M':
+  const s=a>=1e6?'R$ '+(a/1e6).toFixed(1).replace('.',',')+'M':
           a>=1e3?'R$ '+(a/1e3).toFixed(0)+'K':'R$ '+Math.round(a).toLocaleString('pt-BR');
   return v<0?`-${s}`:s;
 }
@@ -481,7 +481,7 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
     // % implícito dos totalizadores = (fcstF/orcF - 1) × 100
     const desvioTot=(orcF!==0)?((fcstF/orcF)-1)*100:0;
     const pctCell=isTot
-      ? `<td style="text-align:center;color:var(--muted);font-size:11px" id="${id}_pct">${desvioTot.toFixed(1).replace('.',',')} %</td>`
+      ? `<td style="text-align:center;color:var(--muted);font-size:11px" id="${id}_pct">${desvioTot.toFixed(4).replace('.',',')} %</td>`
       : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.0001" value="${desvio.toFixed(4)}" onchange="recalcSim()"></td>`;
     return`<tr class="${c}"><td>${l}</td>
       <td class="${neg(realP)}">${fmtN(realP)}</td>
@@ -508,7 +508,7 @@ function recalcSim(){
     if(eF){eF.textContent=fmtN(dat.fcstF);eF.className=neg(dat.fcstF);}
     if(eT){eT.textContent=fmtN(dat.fcstTot);eT.className=neg(dat.fcstTot);}
     if(eAH){const ah=fmtAH(dat.fcstTot,dat.orcTot);eAH.textContent=ah.txt;eAH.className=ah.cls;}
-    if(isTot&&ePct&&dat.pct!=null)ePct.textContent=dat.pct.toFixed(1).replace('.',',')+' %';
+    if(isTot&&ePct&&dat.pct!=null)ePct.textContent=dat.pct.toFixed(4).replace('.',',')+' %';
   });
   _recalcKpiSim();
 }
