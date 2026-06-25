@@ -619,33 +619,67 @@ function _recalcKpiSim(){
 // ④⑤ SIMULAÇÃO DE CENÁRIO + MATRIZ — base no simulador
 // ══════════════════════════════════════════
 // Extrai os parâmetros base do estado ATUAL do simulador
+// Separa REALIZADO (Jan-Mai, fixo) de PROJETADO (Jun-Dez, sensível às alavancas)
 function _baseCenario(){
   const cv=_calcSim();
-  const rl  = cv['Receita Líquida']?cv['Receita Líquida'].fcstTot:0;     // RL projetada (ano? não — Jun-Dez+real)
-  // usamos o FORECAST TOTAL (real+forecast) para refletir o ano inteiro
-  const lba = cv['Lucro Bruto Ajustado']?cv['Lucro Bruto Ajustado'].fcstTot:0;
-  const sga = cv['SG&A']?cv['SG&A'].fcstTot:0;
-  const out = cv['Outras Receitas/Despesas Operacionais']?cv['Outras Receitas/Despesas Operacionais'].fcstTot:0;
-  const res = cv['Resultados Não Recorentes']?cv['Resultados Não Recorentes'].fcstTot:0;
-  const ebt = cv['EBITDA Ajustado']?cv['EBITDA Ajustado'].fcstTot:0;
-  // parte fixa do SG&A (não varia com faturamento)
-  const fix = ['Gastos com Pessoal - SG&A','Gastos com Pessoal Comercial','Aluguel']
-    .reduce((s,l)=>s+(cv[l]?cv[l].fcstTot:0),0);
+  const get=(l,campo)=>cv[l]?cv[l][campo]:0;
+
+  // REALIZADO Jan-Mai (fato consumado, não muda)
+  const rlReal  = get('Receita Líquida','realP');
+  const lbaReal = get('Lucro Bruto Ajustado','realP');
+  const sgaReal = get('SG&A','realP');
+  const outReal = get('Outras Receitas/Despesas Operacionais','realP');
+  const resReal = get('Resultados Não Recorentes','realP');
+
+  // PROJETADO Jun-Dez (forecast — onde as alavancas atuam)
+  const rlProj  = get('Receita Líquida','fcstF');
+  const lbaProj = get('Lucro Bruto Ajustado','fcstF');
+  const sgaProj = get('SG&A','fcstF');
+  const outProj = get('Outras Receitas/Despesas Operacionais','fcstF');
+  const resProj = get('Resultados Não Recorentes','fcstF');
+
+  // Parte FIXA do SG&A no projetado (pessoal + aluguel — não varia com faturamento)
+  const fixProj = ['Gastos com Pessoal - SG&A','Gastos com Pessoal Comercial','Aluguel']
+    .reduce((s,l)=>s+(cv[l]?cv[l].fcstF:0),0);
+
+  // Totais (real + proj) para exibição
+  const rl=rlReal+rlProj, lba=lbaReal+lbaProj, sga=sgaReal+sgaProj;
+  const out=outReal+outProj, res=resReal+resProj;
+  const ebt = get('EBITDA Ajustado','fcstTot');
+
+  // % sobre a RL PROJETADA (base das alavancas de margem e sga)
+  const mbProjPct  = rlProj!==0?(lbaProj/rlProj*100):0;
+  const sgaProjPct = rlProj!==0?(sgaProj/rlProj*100):0;
+
+  // % sobre a RL TOTAL (para exibição nos campos/cabeçalhos)
   const mbPct  = rl!==0?(lba/rl*100):0;
   const sgaPct = rl!==0?(sga/rl*100):0;
-  const sgaVarPct = rl!==0?((sga-fix)/rl*100):0;
-  return {rl,lba,sga,out,res,ebt,fix,mbPct,sgaPct,sgaVarPct};
+
+  return {
+    rl,lba,sga,out,res,ebt,mbPct,sgaPct,
+    rlReal,lbaReal,sgaReal,outReal,resReal,
+    rlProj,lbaProj,sgaProj,outProj,resProj,fixProj,
+    mbProjPct,sgaProjPct
+  };
 }
 
-// EBITDA de um cenário: faturamento varia %, margem e sga% podem mudar
-function _ebitdaCenario(b, fatPct, mbPct, sgaPct){
-  const rl = b.rl*(1+fatPct/100);
-  const lba = rl*(mbPct/100);
-  const fixPctBase = b.rl!==0? (b.fix/b.rl*100):0;
-  const varPct = sgaPct - fixPctBase;
-  const sga = b.fix + rl*(varPct/100);
-  // EBITDA Ajustado = LBA + SG&A + Outras + Resultados Não Recorrentes (fixo)
-  return lba + sga + b.out + b.res;
+// EBITDA Ajustado de um cenário.
+// fatPct, mbPct, sgaPct atuam SOMENTE sobre a parcela PROJETADA (Jun-Dez).
+// O realizado Jan-Mai é fixo (fato consumado).
+function _ebitdaCenario(b, fatPct, mbPctProj, sgaPctProj){
+  // RL projetada ajustada pelo faturamento
+  const rlProj = b.rlProj*(1+fatPct/100);
+  // Lucro Bruto Ajustado projetado = RL projetada × margem (a margem é a do projetado)
+  const lbaProj = rlProj*(mbPctProj/100);
+  // SG&A projetado = parte fixa (constante) + parte variável (acompanha receita projetada)
+  const fixPctProjBase = b.rlProj!==0? (b.fixProj/b.rlProj*100):0;
+  const varPct = sgaPctProj - fixPctProjBase;
+  const sgaProj = b.fixProj + rlProj*(varPct/100);
+  // Outras e Resultados projetados são fixos
+  // EBITDA Ajustado = (realizado Jan-Mai fixo) + (projetado Jun-Dez ajustado)
+  const ebtReal = b.lbaReal + b.sgaReal + b.outReal + b.resReal;
+  const ebtProj = lbaProj + sgaProj + b.outProj + b.resProj;
+  return ebtReal + ebtProj;
 }
 
 let _cenBase=null;
@@ -658,24 +692,26 @@ function renderSensibilidade(){
   // Pré-preenche margem e sga se vazios
   const mbInp=document.getElementById('cMb');
   const sgaInp=document.getElementById('cSga');
-  if(mbInp && mbInp.value==='') mbInp.value=b.mbPct.toFixed(1);
-  if(sgaInp && sgaInp.value==='') sgaInp.value=b.sgaPct.toFixed(1);
+  if(mbInp && mbInp.value==='') mbInp.value=b.mbProjPct.toFixed(1);
+  if(sgaInp && sgaInp.value==='') sgaInp.value=b.sgaProjPct.toFixed(1);
 
   const fat=parseFloat(document.getElementById('cFat').value)||0;
-  const mb =mbInp.value!==''?parseFloat(mbInp.value):b.mbPct;
-  const sga=sgaInp.value!==''?parseFloat(sgaInp.value):b.sgaPct;
+  const mb =mbInp.value!==''?parseFloat(mbInp.value):b.mbProjPct;
+  const sga=sgaInp.value!==''?parseFloat(sgaInp.value):b.sgaProjPct;
 
-  const rlCen=b.rl*(1+fat/100);
-  const lbaCen=rlCen*(mb/100);
-  // Se os 3 campos estão na base (fat=0, margem e sga ≈ atuais), usa EBITDA exato do simulador
-  const naBase=(Math.abs(fat)<0.001 && Math.abs(mb-b.mbPct)<0.05 && Math.abs(sga-b.sgaPct)<0.05);
+  const rlProjCen=b.rlProj*(1+fat/100);
+  const rlCen=b.rlReal+rlProjCen;                    // RL total = real + proj ajustado
+  const lbaProjCen=rlProjCen*(mb/100);
+  const lbaCen=b.lbaReal+lbaProjCen;                 // LBA total = real + proj ajustado
+  // Se os 3 campos estão na base, usa EBITDA exato do simulador
+  const naBase=(Math.abs(fat)<0.001 && Math.abs(mb-b.mbProjPct)<0.05 && Math.abs(sga-b.sgaProjPct)<0.05);
   const ebtCen=naBase?b.ebt:_ebitdaCenario(b,fat,mb,sga);
   const delta=ebtCen-b.ebt;
 
   buildKpis('kpi-cenario',[
-    {label:'Receita Líquida',value:fmtM(rlCen),sub:`${(fat>=0?'+':'')+fat.toFixed(1).replace('.',',')}% vs simulador`,subCls:fat>=0?'kpi-up':'kpi-dn'},
-    {label:'Lucro Bruto Ajustado',value:fmtM(lbaCen),sub:`Margem ${mb.toFixed(1).replace('.',',')}% da RL`},
-    {label:'EBITDA Ajustado do Cenário',value:fmtM(ebtCen),sub:`SG&A ${sga.toFixed(1).replace('.',',')}% da RL`,subCls:ebtCen>=0?'kpi-up':'kpi-dn'},
+    {label:'Receita Líquida',value:fmtM(rlCen),sub:`Jun-Dez ${(fat>=0?'+':'')+fat.toFixed(1).replace('.',',')}%`,subCls:fat>=0?'kpi-up':'kpi-dn'},
+    {label:'Lucro Bruto Ajustado',value:fmtM(lbaCen),sub:`Margem Jun-Dez ${mb.toFixed(1).replace('.',',')}%`},
+    {label:'EBITDA Ajustado do Cenário',value:fmtM(ebtCen),sub:`SG&A Jun-Dez ${sga.toFixed(1).replace('.',',')}%`,subCls:ebtCen>=0?'kpi-up':'kpi-dn'},
     {label:'Δ vs Simulador',value:(delta>=0?'+':'')+fmtM(delta),sub:b.ebt!==0?`${(delta/Math.abs(b.ebt)*100).toFixed(1).replace('.',',')}%`:'-',subCls:delta>=0?'kpi-up':'kpi-dn'},
   ]);
   renderMatriz();
@@ -684,8 +720,8 @@ function renderSensibilidade(){
 function resetCenario(){
   const b=_baseCenario();
   document.getElementById('cFat').value='0';
-  document.getElementById('cMb').value=b.mbPct.toFixed(1);
-  document.getElementById('cSga').value=b.sgaPct.toFixed(1);
+  document.getElementById('cMb').value=b.mbProjPct.toFixed(1);
+  document.getElementById('cSga').value=b.sgaProjPct.toFixed(1);
   renderSensibilidade();
 }
 
@@ -697,27 +733,27 @@ function renderMatriz(){
 
   // Nível de SG&A: pré-preenche com o atual do simulador
   const sgaInp=document.getElementById('mxSga');
-  if(sgaInp && sgaInp.value==='') sgaInp.value=b.sgaPct.toFixed(1);
-  const sgaNivel = sgaInp.value!==''?parseFloat(sgaInp.value):b.sgaPct;
+  if(sgaInp && sgaInp.value==='') sgaInp.value=b.sgaProjPct.toFixed(1);
+  const sgaNivel = sgaInp.value!==''?parseFloat(sgaInp.value):b.sgaProjPct;
   // Atualiza o indicador de nível atual
   const lbl=document.getElementById('mxSgaAtual');
   if(lbl)lbl.textContent='SG&A '+sgaNivel.toFixed(1).replace('.',',')+'%';
 
   const fatRange=[-2,-1,0,1,2].map(i=>i*fatStep);
-  const mbRange =[-2,-1,0,1,2].map(i=>b.mbPct+i*colStep);
+  const mbRange =[-2,-1,0,1,2].map(i=>b.mbProjPct+i*colStep);
 
   const thead=document.getElementById('thead-sens');
   thead.innerHTML=
     `<tr><th rowspan="2" style="background:var(--v1)">Faturamento ↓ / Margem →<br><span style="font-size:10px;font-weight:400">(SG&A ${sgaNivel.toFixed(1).replace('.',',')}%)</span></th>`+
-    `<th colspan="${mbRange.length}" style="background:var(--col-total,#206A47)">Margem Bruta (% da Receita Líquida)</th></tr>`+
+    `<th colspan="${mbRange.length}" style="background:var(--col-total,#206A47)">Margem Bruta Jun-Dez (% da RL projetada)</th></tr>`+
     `<tr>`+mbRange.map(c=>`<th>${c.toFixed(1).replace('.',',')}%</th>`).join('')+`</tr>`;
 
   const tbody=document.getElementById('tbody-sens');
   // EBITDA Ajustado exato do simulador (para a célula base não divergir por arredondamento)
   const ebtExato=b.ebt;
-  const sgaExatoBase=(Math.abs(sgaNivel-b.sgaPct)<0.05); // nível selecionado ≈ SG&A atual
+  const sgaExatoBase=(Math.abs(sgaNivel-b.sgaProjPct)<0.05); // nível selecionado ≈ SG&A atual
   tbody.innerHTML=fatRange.map(fat=>{
-    const rlCen=b.rl*(1+fat/100);
+    const rlCen=b.rlReal + b.rlProj*(1+fat/100);   // RL total = realizado + projetado ajustado
     const cells=mbRange.map((mb,ci)=>{
       const isColBase=(ci===2); // coluna central = margem base
       const isBase=(Math.abs(fat)<0.001 && isColBase && sgaExatoBase);
@@ -736,7 +772,7 @@ function renderMatriz(){
 function mxSgaNav(dir){
   const sgaInp=document.getElementById('mxSga');
   const step=parseFloat(document.getElementById('mxSgaStep').value)||1;
-  const atual=sgaInp.value!==''?parseFloat(sgaInp.value):(_cenBase?_cenBase.sgaPct:0);
+  const atual=sgaInp.value!==''?parseFloat(sgaInp.value):(_cenBase?_cenBase.sgaProjPct:0);
   sgaInp.value=(atual+dir*step).toFixed(1);
   renderMatriz();
 }
