@@ -482,7 +482,7 @@ function renderSim(rows,mesesReal,mesesOrc,lReal,lOrc){
     const desvioTot=(orcF!==0)?((fcstF/orcF)-1)*100:0;
     const pctCell=isTot
       ? `<td style="text-align:center;color:var(--muted);font-size:11px" id="${id}_pct">${desvioTot.toFixed(1).replace('.',',')} %</td>`
-      : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.1" value="${desvio.toFixed(1)}" onchange="recalcSim()"></td>`;
+      : `<td style="text-align:center"><input class="sim-input" id="${id}" type="number" step="0.0001" value="${desvio.toFixed(4)}" onchange="recalcSim()"></td>`;
     return`<tr class="${c}"><td>${l}</td>
       <td class="${neg(realP)}">${fmtN(realP)}</td>
       <td class="${neg(orcF)}">${fmtN(orcF)}</td>
@@ -524,7 +524,7 @@ function resetSim(){
     const orcP =somaOrc(rows,l,mesesReal);
     const orcF =somaOrc(rows,l,mesesOrc);
     const fator=(orcP!==0)?realP/orcP:1;
-    inp.value=((fator-1)*100).toFixed(1);
+    inp.value=((fator-1)*100).toFixed(4);
   });
   recalcSim();
 }
