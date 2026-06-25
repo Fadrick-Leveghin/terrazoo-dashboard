@@ -667,7 +667,9 @@ function renderSensibilidade(){
 
   const rlCen=b.rl*(1+fat/100);
   const lbaCen=rlCen*(mb/100);
-  const ebtCen=_ebitdaCenario(b,fat,mb,sga);
+  // Se os 3 campos estão na base (fat=0, margem e sga ≈ atuais), usa EBITDA exato do simulador
+  const naBase=(Math.abs(fat)<0.001 && Math.abs(mb-b.mbPct)<0.05 && Math.abs(sga-b.sgaPct)<0.05);
+  const ebtCen=naBase?b.ebt:_ebitdaCenario(b,fat,mb,sga);
   const delta=ebtCen-b.ebt;
 
   buildKpis('kpi-cenario',[
@@ -711,12 +713,16 @@ function renderMatriz(){
     `<tr>`+mbRange.map(c=>`<th>${c.toFixed(1).replace('.',',')}%</th>`).join('')+`</tr>`;
 
   const tbody=document.getElementById('tbody-sens');
+  // EBITDA Ajustado exato do simulador (para a célula base não divergir por arredondamento)
+  const ebtExato=b.ebt;
+  const sgaExatoBase=(Math.abs(sgaNivel-b.sgaPct)<0.05); // nível selecionado ≈ SG&A atual
   tbody.innerHTML=fatRange.map(fat=>{
     const rlCen=b.rl*(1+fat/100);
-    const cells=mbRange.map(mb=>{
-      const e=_ebitdaCenario(b,fat,mb,sgaNivel);
-      // célula base: faturamento 0, margem = mbPct, sga = sgaPct atual
-      const isBase=(Math.abs(fat)<0.001 && Math.abs(mb-b.mbPct)<0.001 && Math.abs(sgaNivel-b.sgaPct)<0.001);
+    const cells=mbRange.map((mb,ci)=>{
+      const isColBase=(ci===2); // coluna central = margem base
+      const isBase=(Math.abs(fat)<0.001 && isColBase && sgaExatoBase);
+      // Na célula base, usa o EBITDA exato do simulador; nas demais, calcula
+      const e = isBase ? ebtExato : _ebitdaCenario(b,fat,mb,sgaNivel);
       const cls=isBase?'sens-base':(e>=0?'sens-pos':'sens-neg');
       return `<td class="${cls}">${fmtN(Math.round(e))}</td>`;
     }).join('');
