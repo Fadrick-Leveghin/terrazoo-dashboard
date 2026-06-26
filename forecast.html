@@ -196,6 +196,7 @@ footer{background:var(--v1);padding:16px 32px;display:flex;align-items:center;ju
       </div>
     </div>
     <div class="tbl-outer"><table id="tbl-sens"><thead id="thead-sens"></thead><tbody id="tbody-sens"></tbody></table></div>
+    <div id="esforco-sga" style="padding:14px 18px;font-size:13px;font-weight:600;color:var(--v1);border-top:1px solid var(--borda)"></div>
     <div style="padding:10px 18px;font-size:11px;color:var(--muted)">Valores em R$. Linhas = variação do faturamento · Colunas = Margem Bruta % · A matriz inteira reflete o <b>Nível de SG&A</b> selecionado acima (navegue com ◀ ▶ para ver outros níveis). Célula âmbar = cenário do simulador atual.</div>
   </div>
 </main>
@@ -766,6 +767,25 @@ function renderMatriz(){
     const lblRL=`RL ${(rlCen/1e6).toFixed(1).replace('.',',')}M`;
     return `<tr><td class="sens-row-hdr">${lblFat}<br><span style="font-size:10px;font-weight:400;opacity:.85">${lblRL}</span></td>${cells}</tr>`;
   }).join('');
+
+  // ── Esforço SG&A ──
+  // Teto = 5.715.000 (realizado de maio, teto mensal de despesa, fixo)
+  // SG&A projetado = sgaNivel% × RL projetada Jun-Dez (valor total dos meses orçados, negativo no banco → usar abs)
+  // Esforço mensal = Teto − (|SG&A projetado| ÷ qtd meses)
+  // Esforço total = Esforço mensal × qtd meses
+  const TETO_SGA=5715000;
+  const qMeses=(_SC && _SC.mesesOrc)?_SC.mesesOrc.length:7;
+  const sgaProjVal=Math.abs(b.rlProj*(sgaNivel/100)); // SG&A projetado em R$ (total Jun-Dez)
+  const esforcoMes=TETO_SGA-(sgaProjVal/qMeses);
+  const esforcoTot=esforcoMes*qMeses;
+  const elE=document.getElementById('esforco-sga');
+  if(elE){
+    const sinal=esforcoTot>=0?'':'-';
+    const cor=esforcoTot>=0?'var(--v1)':'var(--red)';
+    elE.innerHTML=`Esforço SG&A: <span style="color:${cor}">${fmtN(Math.round(esforcoTot))}</span> `+
+      `<span style="font-weight:400;color:var(--muted);font-size:11px">`+
+      `(teto ${fmtN(TETO_SGA)}/mês − SG&A projetado ${fmtN(Math.round(sgaProjVal/qMeses))}/mês = ${fmtN(Math.round(esforcoMes))}/mês × ${qMeses} meses)</span>`;
+  }
 }
 
 // Navega o nível de SG&A pelo passo definido
@@ -843,12 +863,16 @@ function exportarExcel(){
   }
 
   function buildSheet(label,theadId,tbodyId){
-    const gr1=[...document.querySelectorAll(`#${theadId} tr.gr1 th`)];
+    const gr1=[...document.querySelectorAll(`#${theadId} tr.gr1 th`)].slice(1); // pula "Linha DRE" (rowspan)
     const gr2=[...document.querySelectorAll(`#${theadId} tr.gr2 th`)];
     const trs=[...document.querySelectorAll(`#${tbodyId} tr`)];
+    // total de colunas = 1 (Linha DRE) + qtd de células gr2
+    const totalCols=1+gr2.length;
     let xml='';
-    // gr1
-    xml+=`<Row ss:Height="22"><Cell ss:StyleID="${sid(C.v1,C.white,true,'Left')}"><Data ss:Type="String">${esc(label)}</Data></Cell>`;
+    // Linha de TÍTULO — mesclada em toda a largura (alinha com as colunas de baixo)
+    xml+=`<Row ss:Height="22"><Cell ss:StyleID="${sid(C.v1,C.white,true,'Left')}" ss:MergeAcross="${totalCols-1}"><Data ss:Type="String">${esc(label)}</Data></Cell></Row>`;
+    // gr1 (grupos de colunas)
+    xml+=`<Row ss:Height="20"><Cell ss:StyleID="${sid(C.v1,C.white,true,'Left')}"><Data ss:Type="String"></Data></Cell>`;
     gr1.forEach(th=>{
       const bg=thBg(th.className);const span=parseInt(th.getAttribute('colspan')||1);
       xml+=`<Cell ss:StyleID="${sid(bg,C.white,true,'Center')}" ss:MergeAcross="${span-1}"><Data ss:Type="String">${esc(th.textContent.trim())}</Data></Cell>`;
@@ -896,10 +920,62 @@ function exportarExcel(){
     return xml;
   }
 
+  // Sheet da matriz de sensibilidade
+  function buildSheetSens(){
+    const thRows=[...document.querySelectorAll('#thead-sens tr')];
+    const trs=[...document.querySelectorAll('#tbody-sens tr')];
+    if(!trs.length)return '';
+    // largura total = 1 + nº de colunas de margem (última linha do thead)
+    const ultThead=thRows[thRows.length-1];
+    const nCols=[...ultThead.querySelectorAll('th')].length; // colunas de margem
+    const totalCols=1+nCols;
+    let xml='';
+    // Título
+    xml+=`<Row ss:Height="22"><Cell ss:StyleID="${sid(C.v1,C.white,true,'Left')}" ss:MergeAcross="${totalCols-1}"><Data ss:Type="String">⑤ Matriz de Sensibilidade — EBITDA Ajustado</Data></Cell></Row>`;
+    // Cabeçalho margem (linha de %)
+    xml+=`<Row ss:Height="18"><Cell ss:StyleID="${sid(C.v1,C.white,true,'Left')}"><Data ss:Type="String">Faturamento / Margem</Data></Cell>`;
+    [...ultThead.querySelectorAll('th')].forEach(th=>{
+      xml+=`<Cell ss:StyleID="${sid(C.total,C.white,true,'Center')}"><Data ss:Type="String">${esc(th.textContent.trim())}</Data></Cell>`;
+    });
+    xml+='</Row>';
+    // Linhas de dados
+    trs.forEach(tr=>{
+      const tds=[...tr.querySelectorAll('td')];
+      xml+='<Row ss:Height="15">';
+      tds.forEach((td,i)=>{
+        if(i===0){
+          // rótulo faturamento (pode ter <br>) → texto limpo
+          const txt=td.textContent.replace(/\s+/g,' ').trim();
+          xml+=`<Cell ss:StyleID="${sid(C.sub,C.white,true,'Left')}"><Data ss:Type="String">${esc(txt)}</Data></Cell>`;
+        } else {
+          const raw=td.textContent.trim();
+          const clean=raw.replace(/\./g,'').replace(',','.').replace(/[^0-9\.\-]/g,'');
+          const n=parseFloat(clean);
+          const isNeg=raw.includes('-');
+          const bg=isNeg?'fff3f3':'e8f5e9';
+          if(!isNaN(n)){
+            xml+=`<Cell ss:StyleID="${sid(bg,isNeg?C.red:'1a2e1f',false,'Right')}"><Data ss:Type="Number">${n}</Data></Cell>`;
+          } else {
+            xml+=`<Cell ss:StyleID="${sid(bg,'1a2e1f',false,'Right')}"><Data ss:Type="String">${esc(raw)}</Data></Cell>`;
+          }
+        }
+      });
+      xml+='</Row>';
+    });
+    // Esforço SG&A
+    const elE=document.getElementById('esforco-sga');
+    if(elE){
+      const txt=elE.textContent.replace(/\s+/g,' ').trim();
+      xml+=`<Row ss:Height="20"><Cell ss:StyleID="${sid(C.v1,C.white,true,'Left')}" ss:MergeAcross="${totalCols-1}"><Data ss:Type="String">${esc(txt)}</Data></Cell></Row>`;
+    }
+    return xml;
+  }
+
   const sheets=[
     {name:'Forecast Base',     rows:buildSheet('① Forecast Base — Real + Orçado','thead-base','tbody-base')},
     {name:'Forecast Tendência',rows:buildSheet('② Forecast Tendência','thead-tend','tbody-tend')},
     {name:'Simulador',         rows:buildSheet('③ Simulador','thead-sim','tbody-sim')},
+    {name:'Sensibilidade',     rows:buildSheetSens()},
   ];
 
   let stylesXml=`<Style ss:ID="Default"><Alignment ss:Vertical="Center"/><Font ss:FontName="Calibri" ss:Size="11"/></Style>`;
